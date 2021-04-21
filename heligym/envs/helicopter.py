@@ -6,12 +6,13 @@ import pprint
 from typing import List
 import sys, math
 import numpy as np
+import os
 
 import gym
 from gym import spaces
 from gym.utils import seeding, EzPickle
 
-from helicopter_dynamics import HelicopterDynamics
+from .dynamics.helicopter_dynamics import HelicopterDynamics
 
 FPS         = 100.0
 DT          = 1/FPS
@@ -26,8 +27,10 @@ class Helicopter(gym.Env, EzPickle):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : FPS
     }
-    def __init__(self, yaml_path:str = "gokbey_param.yaml"):
+    _default_yaml = os.path.join(os.path.dirname(__file__), "utils", "a109_param.yaml")
+    def __init__(self, yaml_path:str = None):
         EzPickle.__init__(self)
+        yaml_path = self._default_yaml if yaml_path is None else yaml_path
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(0, +1, (4,), dtype=np.float32)

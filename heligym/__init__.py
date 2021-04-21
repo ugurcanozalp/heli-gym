@@ -1,4 +1,5 @@
 from gym.envs.registration import register
+from heligym.envs import Helicopter
 
 register(
     id='Heli-v0',

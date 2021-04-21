@@ -2,10 +2,10 @@ import yaml
 from typing import List
 import sys, math
 import numpy as np
-import pprint
+import os
 
-from utils import euler_to_rotmat, pqr_to_eulerdot_mat
-from dynamics import DynamicSystem, State
+from .kinematic import euler_to_rotmat, pqr_to_eulerdot_mat
+from .dynamics import DynamicSystem, State
 
 FPS         = 100.0
 DT          = 1/FPS
@@ -19,9 +19,11 @@ class HelicopterDynamics(DynamicSystem):
     _observations = ["TAS", "AOA", "SSLIP", "GROUND_SPD", "TRACK", "CLIMB_RATE", 
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
         "ACC_LON", "LAT_ACC", "DWN_ACC", "XPOS", "YPOS", "ALTITUDE", "POWER"]
-        
+    
+    _default_yaml = os.path.join(os.path.dirname(__file__), "a109_param.yaml")
     @classmethod
-    def init_yaml(cls, yaml_path: str = "a109_param.yaml"):
+    def init_yaml(cls, yaml_path: str = None):
+        yaml_path = self._default_yaml if yaml_path is None else yaml_path
         with open(yaml_path) as foo:
             params = yaml.safe_load(foo)
 
@@ -36,11 +38,11 @@ class HelicopterDynamics(DynamicSystem):
         self.set_wind() # wind velocity in earth frame:
 
     def reset(self):
-        self.register_state('betas', np.array([-0.01122345, -0.03121169]))
+        self.register_state('betas', np.array([0.0, 0.0]))
         self.register_state('uvw', np.array([0.0, 0.0, 0.0]))
         self.register_state('pqr', np.array([0.0, 0.0, 0.0]))
-        self.register_state('euler', np.array([-0.03694274, 0.10117973, 0.0]))
-        self.register_state('xyz', np.array([0.0, 0.0, -1000.0]))     
+        self.register_state('euler', np.array([0.0, 0.0, 0.0]))
+        self.register_state('xyz', np.array([0.0, 0.0, -100.0]))     
         self.last_action = np.zeros(4)       
 
     @property
@@ -335,6 +337,7 @@ class HelicopterDynamics(DynamicSystem):
         moment_mr[2] += extra_mr_torque
 
         power_total = power_mr + power_tr + power_extra_mr + 550*self.HELI['HP_LOSS'] 
+        power_total_hp = power_total/550
 
         force_gravity = earth2body@np.array([0,0,self.HELI['WT']])
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
@@ -353,17 +356,39 @@ class HelicopterDynamics(DynamicSystem):
         state_dots['xyz'] = xyz_dot
 
         ### Observations
-        observartion = np.array([tas, aoa_deg, sideslip_deg, \
+        observartion = np.array([power_total_hp, \
+            tas, aoa_deg, sideslip_deg, \
             ground_speed, track_angle_deg, climb_rate, \
             phi_deg, theta_deg, psi_deg, \
             p_dps, q_dps, r_dps,
             body_acc[0], body_acc[1], body_acc[2], \
             xyz[0], xyz[1], altitude],
-            power_total)
+            )
 
         return state_dots, observartion
 
     def render_text(self):
         obs = self.get_observation()
-        obs_dict = {k: v for k,v in zip(self._observations, obs)}
-        return pprint.pprint(obs_dict)
+        text = f""" \t-----SENSOR READINGS-----
+            POWER \t\t\t: {obs[0]:5.2f} hp
+            TAS \t\t\t: {obs[1]:5.2f} ft/s
+            AOA \t\t\t: {obs[2]:5.2f} °
+            SSLIP \t\t\t: {obs[3]:5.2f} °
+            GRS \t\t\t: {obs[4]:5.2f} ft/s
+            TRACK \t\t\t: {obs[5]:5.2f} °
+            CLIMB_RATE \t\t\t: {obs[6]:5.2f} ft/s
+            ROLL \t\t\t: {obs[7]:5.2f} °
+            PITCH \t\t\t: {obs[8]:5.2f} °
+            YAW \t\t\t: {obs[9]:5.2f} °
+            ROLL_RATE \t\t\t: {obs[10]:5.2f} °/sec
+            PITCH_RATE \t\t\t: {obs[11]:5.2f} °/sec
+            YAW_RATE \t\t\t: {obs[12]:5.2f} °/sec
+            LON_ACC \t\t\t: {obs[13]:5.2f} ft/sec^2
+            LAT_ACC \t\t\t: {obs[14]:5.2f} ft/sec^2
+            DWN_ACC \t\t\t: {obs[15]:5.2f} ft/sec^2
+            X_LOC \t\t\t: {obs[16]:5.2f} ft
+            Y_LOC \t\t\t: {obs[17]:5.2f} ft
+            Z_LOC \t\t\t: {obs[18]:5.2f} ft
+
+        """
+        return print(text, sep=' ', end='', flush=True)

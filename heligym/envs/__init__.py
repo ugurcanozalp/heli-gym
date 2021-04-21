@@ -1,1 +1,1 @@
-from .helicopter import HeliEnv
+from .helicopter import Helicopter
