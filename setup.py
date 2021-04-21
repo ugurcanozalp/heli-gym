@@ -16,7 +16,7 @@ setup(name='heligym',
     ],
     install_requires=['numpy', 'gym', 'pyyaml'],
     python_requires='>=3.8',
-    packages = find_packages(),
+    packages = ["heligym"],
     include_package_data=True,
     zip_safe=False
     )

@@ -55,6 +55,7 @@ env = Helicopter()
 or
 ```python
 import gym
+import heligym
 env = gym.make("Heli-v0")
 ```
 
