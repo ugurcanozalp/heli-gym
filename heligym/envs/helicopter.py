@@ -88,10 +88,10 @@ class HeliHover(Heli):
         dloc = self.heli_dyn.state['xyz'] - self.target_location
         dloc_norm = np.linalg.norm(dloc)
         vel = self.heli_dyn.state_dots['xyz']
-        vel_norm = np.linalg.norm(vel)
-        reward1 = np.inner(dloc/dloc_norm, vel/vel_norm)
-        reward2 = np.exp(-dloc_norm/(4*self.heli_dyn.MR['R'])) 
-        return reward1 + reward2
+        direction_sim = np.inner(dloc/dloc_norm, vel/(0.75*self.heli_dyn.MR['V_TIP']))
+        closeness = np.exp(-dloc_norm/(4*self.heli_dyn.MR['R'])) 
+        reward = (1-closeness)*direction_sim + closeness
+        return reward
 
 if __name__=='__main__':
     env = HeliHover()
