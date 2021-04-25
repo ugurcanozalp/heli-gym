@@ -35,9 +35,11 @@ class Heli(gym.Env, EzPickle):
         self.action_space = spaces.Box(0, +1, (4,), dtype=np.float32)
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
-        self.successed_time = 0 # time counter for successing task through time. 
+        self.successed_time = 0 # time counter for successing task through time.
+        self.renderer = None
 
     def render(self):
+        # return self.renderer()
         return self.heli_dyn.render_text()
 
     def step(self, actions):

@@ -20,7 +20,7 @@ This is GYM environment package for reinforcement learning for helicopter flight
 ### Observation Space
 | Num | Obs                | Unit  | Min   | Max    |
 |-----|--------------------|-------|-------|--------|
-| 0   | power              | hp    | -∞    | ∞      |
+| 0   | power              | hp    | 0.0   | ∞      |
 | 1   | air speed          | ft/s  | 0.0   | ∞      |  
 | 2   | angle of attack    | deg   | -π    | π      |
 | 3   | sideslip angle     | deg   | -π    | π      |
@@ -40,6 +40,13 @@ This is GYM environment package for reinforcement learning for helicopter flight
 | 17  | y location(earth)  | ft    | -∞    | ∞      |  
 | 18  | z location(earth)  | ft    | -∞    | ∞      |
 
+## Tasks
+For now only one task is available. 
+
+| Environment        | Details              |
+|--------------------|----------------------|
+| HeliHover-v0       | Hovering Task        |
+
 ## Setup
 Run following command.
 ```bash
@@ -49,13 +56,13 @@ pip install -e .
 ## Usage
 Create environment by either,
 ```python
-from heligym import Helicopter
-env = Helicopter()
+from heligym import HeliHover
+env = HeliHover()
 ```
 or
 ```python
 import gym
 import heligym
-env = gym.make("Heli-v0")
+env = gym.make("HeliHover-v0")
 ```
 

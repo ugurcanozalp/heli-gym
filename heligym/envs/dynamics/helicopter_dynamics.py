@@ -115,7 +115,7 @@ class HelicopterDynamics(DynamicSystem):
         return temp, rho
 
     def _does_hit_ground(self, altitude):
-        return altitude -self.HELI['WL_CG']/12 - self.ENV['GR_ALT'] > 0.0
+        return altitude -self.HELI['WL_CG']/12 - self.ENV['GR_ALT'] < 0.0
 
     def _ground_touching_altitude(self):
         return self.HELI['WL_CG']/12 - EPS # divide by 12 to make inch to feet
