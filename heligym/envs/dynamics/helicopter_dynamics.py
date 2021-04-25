@@ -10,7 +10,7 @@ from .dynamics import DynamicSystem, State
 FPS         = 100.0
 DT          = 1/FPS
 FTS2KNOT    = 0.5924838; # ft/s to knots conversion
-EPS         = 1e-10; # small value for divison by zero
+EPS         = 1e-6; # small value for divison by zero
 R2D         = 180/math.pi; # Rad to deg
 D2R         = 1/R2D;
 
@@ -42,7 +42,8 @@ class HelicopterDynamics(DynamicSystem):
         self.register_state('uvw', np.array([0.0, 0.0, 0.0]))
         self.register_state('pqr', np.array([0.0, 0.0, 0.0]))
         self.register_state('euler', np.array([0.0, 0.0, 0.0]))
-        self.register_state('xyz', np.array([0.0, 0.0, -100.0]))     
+        cg_from_bottom = -self._ground_touching_altitude()
+        self.register_state('xyz', np.array([0.0, 0.0, cg_from_bottom]))     
         self.last_action = np.zeros(4)       
 
     @property
@@ -112,6 +113,12 @@ class HelicopterDynamics(DynamicSystem):
         temp = self.ENV['T0'] - self.ENV['LAPSE']*altitude; # [R] Temperature at the current altitude
         rho = self.ENV['RO_SEA']*(temp/self.ENV['T0'])**((self.ENV['GRAV']/(self.ENV['LAPSE']*self.ENV['R']))-1.0); # [slug/ft**3]
         return temp, rho
+
+    def _does_hit_ground(self, altitude):
+        return altitude -self.HELI['WL_CG']/12 - self.ENV['GR_ALT'] > 0.0
+
+    def _ground_touching_altitude(self):
+        return self.HELI['WL_CG']/12 - EPS # divide by 12 to make inch to feet
 
     def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr):
         """Calculate Forces and Moments caused by Main Rotor
@@ -247,7 +254,6 @@ class HelicopterDynamics(DynamicSystem):
         moment_ht = np.array([0, M_HT, 0])        
         return force_ht, moment_ht
 
-
     def _calc_vt_fm(self, rho, uvw_air, pqr, vi_tr):
         """Calculate Forces and Moments caused by Vertical Tail
         """
@@ -285,13 +291,14 @@ class HelicopterDynamics(DynamicSystem):
 
     def dynamics(self, state, action):
         #
-        state_dots = self.empty_state_dots
+        state_dots = self.state_dots
         #
         betas = state['betas']
         uvw = state['uvw']
         pqr = state['pqr']
         euler = state['euler']
         xyz = state['xyz']
+
         ### Control input calculations 
         coll = D2R*( self.HELI['COL_OS'] + action[0]*(self.HELI['COL_H'] - self.HELI['COL_L']) + self.HELI['COL_L'] )
         lon = D2R*( action[1]*(self.HELI['LON_H'] - self.HELI['LON_L']) + self.HELI['LON_L'] )
@@ -343,6 +350,11 @@ class HelicopterDynamics(DynamicSystem):
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
         moment_total = moment_mr + moment_tr + moment_fus + moment_ht + moment_vt + moment_wn
 
+        if self._does_hit_ground(altitude):
+            force_total_on_earth = body2earth@force_total
+            force_ground = earth2body@np.array([0,0,-force_total_on_earth[2] + EPS])
+            force_total += force_ground
+
         body_acc = force_total/self.HELI['M']
         uvw_dot = body_acc - np.cross(pqr, uvw)
         pqr_dot = np.linalg.inv(self.HELI['I'])@(moment_total - np.cross(pqr, self.HELI['I']@pqr))
@@ -366,7 +378,7 @@ class HelicopterDynamics(DynamicSystem):
             )
 
         return state_dots, observartion
-
+       
     def render_text(self):
         obs = self.get_observation()
         text = f""" \t-----SENSOR READINGS-----

@@ -79,7 +79,7 @@ class State(OrderedDict):
 class DynamicSystem(object):
     def __init__(self, dt: float = 0.01):
         self.state = State()
-        self.empty_state_dots = State()
+        self.state_dots = State()
         self.dt = dt
         self.last_action = None
 
@@ -88,7 +88,7 @@ class DynamicSystem(object):
 
     def register_state(self, name:str, value: np.ndarray):
         self.state[name] = value
-        self.empty_state_dots[name] = np.zeros(value.shape)
+        self.state_dots[name] = np.zeros(value.shape)
 
     def __getitem__(self, name):
         if name in self.state.keys():
@@ -109,6 +109,7 @@ class DynamicSystem(object):
         k3, _ = self.dynamics(self.state + 1/2 * k2 * self.dt, action)
         k4, _ = self.dynamics(self.state + k3 * self.dt, action)
         self.state = self.state + 1/6 * (k1 + 2*k2 + 2*k3 + k4)*self.dt
+        self.state_dots, _ = self.dynamics(self.state, action)
         self.last_action = action
 
     def get_observation(self):
