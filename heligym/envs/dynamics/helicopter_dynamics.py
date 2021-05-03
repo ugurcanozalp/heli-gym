@@ -73,30 +73,30 @@ class HelicopterDynamics(DynamicSystem):
     def __precalculations(self):
         # Component positions wrt CG locations
         # 1/12 comes from inch to feet conversion
-        self.MR['H'] = (self.MR['WL']-self.HELI['WL_CG'])/12;  # [ft] 
-        self.MR['D'] = (self.MR['FS']-self.HELI['FS_CG'])/12;
-        self.FUS['H'] = (self.FUS['WL']-self.HELI['WL_CG'])/12;
-        self.FUS['D'] = (self.FUS['FS']-self.HELI['FS_CG'])/12;
-        self.WN['H']  = (self.WN['WL']-self.HELI['WL_CG'])/12;
-        self.WN['D']  = (self.WN['FS']-self.HELI['FS_CG'])/12;
-        self.HT['H']  = (self.HT['WL']-self.HELI['WL_CG'])/12;
-        self.HT['D']  = (self.HT['FS']-self.HELI['FS_CG'])/12;
-        self.VT['H']  = (self.VT['WL']-self.HELI['WL_CG'])/12;
-        self.VT['D']  = (self.VT['FS']-self.HELI['FS_CG'])/12;
-        self.TR['H']  = (self.TR['WL']-self.HELI['WL_CG'])/12;
-        self.TR['D']  = (self.TR['FS']-self.HELI['FS_CG'])/12;
+        self.MR['H'] = (self.MR['WL']-self.HELI['WL_CG'])/12  # [ft]
+        self.MR['D'] = (self.MR['FS']-self.HELI['FS_CG'])/12
+        self.FUS['H'] = (self.FUS['WL']-self.HELI['WL_CG'])/12
+        self.FUS['D'] = (self.FUS['FS']-self.HELI['FS_CG'])/12
+        self.WN['H']  = (self.WN['WL']-self.HELI['WL_CG'])/12
+        self.WN['D']  = (self.WN['FS']-self.HELI['FS_CG'])/12
+        self.HT['H']  = (self.HT['WL']-self.HELI['WL_CG'])/12
+        self.HT['D']  = (self.HT['FS']-self.HELI['FS_CG'])/12
+        self.VT['H']  = (self.VT['WL']-self.HELI['WL_CG'])/12
+        self.VT['D']  = (self.VT['FS']-self.HELI['FS_CG'])/12
+        self.TR['H']  = (self.TR['WL']-self.HELI['WL_CG'])/12
+        self.TR['D']  = (self.TR['FS']-self.HELI['FS_CG'])/12
         #
-        self.HELI['M']=self.HELI['WT']/self.ENV['GRAV']; # [slug] vehicle mass
+        self.HELI['M']=self.HELI['WT']/self.ENV['GRAV'] # [slug] vehicle mass
         # Main Rotor precalculations
-        self.MR['OMEGA'] = self.MR['RPM']*2*math.pi/60; # [rad/s] MR rev speed
-        self.MR['V_TIP'] = self.MR['R']*self.MR['OMEGA']; # [ft/s] MR tip speed
-        self.MR['FR'] = self.MR['CD0']*self.MR['R']*self.MR['B']*self.MR['C']; # eff.frontal area MR
-        self.MR['SOL'] = self.MR['B']*self.MR['C']/(self.MR['R']*math.pi); # MR solidity (SIGMA)
-        self.MR['A_SIGMA'] = self.MR['A']*self.MR['SOL']; # product(lift-curve-slope & solidity)
+        self.MR['OMEGA'] = self.MR['RPM']*2*math.pi/60 # [rad/s] MR rev speed
+        self.MR['V_TIP'] = self.MR['R']*self.MR['OMEGA'] # [ft/s] MR tip speed
+        self.MR['FR'] = self.MR['CD0']*self.MR['R']*self.MR['B']*self.MR['C'] # eff.frontal area MR
+        self.MR['SOL'] = self.MR['B']*self.MR['C']/(self.MR['R']*math.pi) # MR solidity (SIGMA)
+        self.MR['A_SIGMA'] = self.MR['A']*self.MR['SOL'] # product(lift-curve-slope & solidity)
         # Tail Rotor precalculations
-        self.TR['OMEGA'] = self.TR['RPM']*2*math.pi/60; # [rad/s] TR rev speed
-        self.TR['FR'] = self.TR['CD0']*self.TR['R']*self.TR['B']*self.TR['C']; # eff.frontal area TR
-        self.TR['SOL'] = self.TR['B']*self.TR['C']/(self.TR['R']*math.pi); # TR solidity (SIGMA)
+        self.TR['OMEGA'] = self.TR['RPM']*2*math.pi/60 # [rad/s] TR rev speed
+        self.TR['FR'] = self.TR['CD0']*self.TR['R']*self.TR['B']*self.TR['C'] # eff.frontal area TR
+        self.TR['SOL'] = self.TR['B']*self.TR['C']/(self.TR['R']*math.pi) # TR solidity (SIGMA)
         # Inertia
         #print(self.HELI['IX'])
         self.HELI['I'] = np.array([ [self.HELI['IX']     ,   0.0                 ,   -self.HELI['IXZ']], 
@@ -110,8 +110,8 @@ class HelicopterDynamics(DynamicSystem):
     def _altitude_to_air_properties(self, altitude):
         """Calculate Air temperature and density from altitude.
         """
-        temp = self.ENV['T0'] - self.ENV['LAPSE']*altitude; # [R] Temperature at the current altitude
-        rho = self.ENV['RO_SEA']*(temp/self.ENV['T0'])**((self.ENV['GRAV']/(self.ENV['LAPSE']*self.ENV['R']))-1.0); # [slug/ft**3]
+        temp = self.ENV['T0'] - self.ENV['LAPSE']*altitude # [R] Temperature at the current altitude
+        rho = self.ENV['RO_SEA']*(temp/self.ENV['T0'])**((self.ENV['GRAV']/(self.ENV['LAPSE']*self.ENV['R']))-1.0) # [slug/ft**3]
         return temp, rho
 
     def _does_hit_ground(self, altitude):
@@ -129,24 +129,24 @@ class HelicopterDynamics(DynamicSystem):
         GAM_OM16 = rho*self.MR['A']*self.MR['C']*self.MR['R']**4/self.MR['IB']* \
             self.MR['OMEGA']/16*(1+8/3*self.MR['E']/self.MR['R'])
         # flapping aero cpl(flapping coupling factor)    
-        KC = (0.75*self.MR['OMEGA']*self.MR['E']/self.MR['R']/GAM_OM16)+self.MR['K1']; 
+        KC = (0.75*self.MR['OMEGA']*self.MR['E']/self.MR['R']/GAM_OM16)+self.MR['K1']
         # flapping x-cpl coef
-        ITB2_OM = self.MR['OMEGA']/(1+(self.MR['OMEGA']/GAM_OM16)**2);   
+        ITB2_OM = self.MR['OMEGA']/(1+(self.MR['OMEGA']/GAM_OM16)**2)
         # flapping primary resp(inverse TPP lag) [rad/s]
-        ITB = ITB2_OM*self.MR['OMEGA']/GAM_OM16; 
+        ITB = ITB2_OM*self.MR['OMEGA']/GAM_OM16
         # primary(direct)flapping stiffness [rad/sec2]
         DL_DB1 = self.MR['B']/2* \
-            (1.5*self.MR['IB']*self.MR['E']/self.MR['R']*(self.MR['OMEGA'])**2);  
+            (1.5*self.MR['IB']*self.MR['E']/self.MR['R']*self.MR['OMEGA']**2)
         # cross(off-axis)flapping stiffness [rad/sec2]
-        DL_DA1 = 0.5*rho*self.MR['A']*self.MR['B']*self.MR['C']*self.MR['R']*self.MR['V_TIP']**2*self.MR['E']/6;    
+        DL_DA1 = 0.5*rho*self.MR['A']*self.MR['B']*self.MR['C']*self.MR['R']*self.MR['V_TIP']**2*self.MR['E']/6
         # thrust coeff.
-        CT = self.HELI['WT']/(rho*math.pi*self.MR['R']**2*self.MR['V_TIP']**2); 
+        CT = self.HELI['WT']/(rho*math.pi*self.MR['R']**2*self.MR['V_TIP']**2)
         ## Dihedral effect on TPP
         # TPP dihedral effect(late.flap2side vel)
-        DB1DV = 2/self.MR['OMEGA']/self.MR['R']*(8*CT/self.MR['A_SIGMA']+(math.sqrt(CT/2))); 
+        DB1DV = 2/self.MR['OMEGA']/self.MR['R']*(8*CT/self.MR['A_SIGMA']+(math.sqrt(CT/2)))
         DA1DU = -DB1DV; # TPP pitchup with speed   
 
-        wake_fn = 1/(1+np.exp(10*(np.abs(uvw_air[0])/self.HELI['VTRANS'])-1.0))
+        wake_fn = 0.5 + 0.5*np.tanh(10*(np.abs(uvw_air[0])/self.HELI['VTRANS']-1.0))
         ### MR TPP Dynamics
         a_sum = betas[1]-lon+KC*betas[0]+DB1DV*uvw_air[1]*(1+wake_fn)
         b_sum = betas[0]+lat-KC*betas[1]+DA1DU*uvw_air[0]*(1+2*wake_fn)
@@ -155,13 +155,14 @@ class HelicopterDynamics(DynamicSystem):
         betas_dot[1] = -ITB*a_sum+ITB2_OM*b_sum-pqr[0]
 
         ## MR Force Moments
-        wr = uvw_air[2] + (betas[0]-self.MR['IS'])*uvw_air[0] - betas[1]*uvw_air[1]; # z-axis vel re rotor plane
-        wb = wr + 2/3*self.MR['OMEGA']*self.MR['R']*(coll+0.75*self.MR['TWST']); # z-axis vel re blade (equivalent)
+        wr = uvw_air[2] + (betas[0]-self.MR['IS'])*uvw_air[0] - betas[1]*uvw_air[1] # z-axis vel re rotor plane
+        wb = wr + 2/3*self.MR['OMEGA']*self.MR['R']*(coll+0.75*self.MR['TWST']) # z-axis vel re blade (equivalent)
         
         COEF = self.MR['OMEGA']*self.MR['A']*self.MR['B']*self.MR['C']
-        b,c = COEF/(8*math.pi), -wb*COEF/(8*math.pi)
-        vi_mr = 0.5*(-b + np.sqrt(np.max([0, b**2 + 4*c]))) # Initialization
-        
+        #b,c = COEF/(8*math.pi), -wb*COEF/(8*math.pi)
+        #vi_mr = 0.5*(-b + np.sqrt(np.max([0, b**2 + 4*c]))) # Initialization
+        vi_mr = 0.0
+
         for i in range(20):
             thrust_mr = (wb - vi_mr) * rho*(self.MR['R']**2*COEF/4);
             v_hat_2 = uvw_air[0]**2 + uvw_air[1]**2 + wr*(wr-2*vi_mr)
@@ -169,7 +170,7 @@ class HelicopterDynamics(DynamicSystem):
             vi_mr = np.sqrt(np.abs(vi_2))
 
         # MR induced flow power consumption
-        induced_power=thrust_mr*vi_mr;
+        induced_power=thrust_mr*vi_mr
         # MR profile drag power consumption
         profile_power=0.5*rho*(self.MR['FR']/4)*self.MR['OMEGA']*self.MR['R']*(self.MR['OMEGA']**2*self.MR['R']**2+ \
                      4.6*(uvw_air[0]**2+uvw_air[1]**2))
@@ -191,14 +192,15 @@ class HelicopterDynamics(DynamicSystem):
     def _calc_tr_fm(self, rho, pedal, uvw_air, pqr):
         """Calculate Forces and Moments caused by Tail Rotor
         """
-        vr = -(uvw_air[1] - pqr[2]*self.TR['D'] + pqr[0]*self.TR['H']); # vel re rotor plane
-        vb = vr + 2/3*self.TR['OMEGA']*self.TR['R']*(pedal+0.75*self.TR['TWST']); # vel re blade plane (equivalent)
+        vr = -(uvw_air[1] - pqr[2]*self.TR['D'] + pqr[0]*self.TR['H']) # vel re rotor plane
+        vb = vr + 2/3*self.TR['OMEGA']*self.TR['R']*(pedal+0.75*self.TR['TWST']) # vel re blade plane (equivalent)
         
         COEF = self.TR['OMEGA']*self.TR['A']*self.TR['B']*self.TR['C']
-        b,c = COEF/(8*math.pi), -vb*COEF/(8*math.pi)
-        vi_tr = 0.5*(-b + np.sqrt(np.max([0, b**2 + 4*c]))) # Initialization
+        #b,c = COEF/(8*math.pi), -vb*COEF/(8*math.pi)
+        #vi_tr = 0.5*(-b + np.sqrt(np.max([0, b**2 + 4*c]))) # Initialization
+        vi_tr = 0.0
         for i in range(20):
-            thrust_tr = (vb - vi_tr)*rho*(self.TR['R']**2*COEF/4);
+            thrust_tr = (vb - vi_tr)*rho*(self.TR['R']**2*COEF/4)
             v_hat_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2 + vr*(vr-2*vi_tr)
             vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_tr/(2*math.pi*rho*self.TR['R']**2))**2 ) - v_hat_2
             vi_tr = np.sqrt(np.abs(vi_2))
@@ -257,16 +259,16 @@ class HelicopterDynamics(DynamicSystem):
     def _calc_vt_fm(self, rho, uvw_air, pqr, vi_tr):
         """Calculate Forces and Moments caused by Vertical Tail
         """
-        va_vt=uvw_air[1]+vi_tr-self.VT['D']*pqr[2];
-        vta_vt=np.sqrt(uvw_air[0]**2+va_vt**2);
+        va_vt=uvw_air[1]+vi_tr-self.VT['D']*pqr[2]
+        vta_vt=np.sqrt(uvw_air[0]**2+va_vt**2)
 
         if np.abs(va_vt) > 0.3*np.abs(uvw_air[0]):
-            Y_VT=0.5*rho*self.VT['YMAX']*np.abs(vta_vt)*va_vt;
+            Y_VT=0.5*rho*self.VT['YMAX']*np.abs(vta_vt)*va_vt
         else:
-            Y_VT=0.5*rho*(self.VT['YUU']*np.abs(uvw_air[0])*uvw_air[0]+self.VT['YUV']*np.abs(uvw_air[0])*va_vt);   
+            Y_VT=0.5*rho*(self.VT['YUU']*np.abs(uvw_air[0])*uvw_air[0]+self.VT['YUV']*np.abs(uvw_air[0])*va_vt)
         
-        L_VT=Y_VT*self.VT['H']; 
-        N_VT=-Y_VT*self.VT['D'];
+        L_VT=Y_VT*self.VT['H']
+        N_VT=-Y_VT*self.VT['D']
         force_vt = np.array([0,Y_VT,0])
         moment_vt = np.array([L_VT, 0, N_VT])        
         return force_vt, moment_vt
@@ -275,15 +277,15 @@ class HelicopterDynamics(DynamicSystem):
         """Calculate Forces and Moments caused by Wing
         """
         ## Wing
-        wa_wn= uvw_air[2]-vi_mr; # local z-vel at wing
-        vta_wn=np.sqrt(uvw_air[0]**2+wa_wn**2);
+        wa_wn= uvw_air[2]-vi_mr # local z-vel at wing
+        vta_wn=np.sqrt(uvw_air[0]**2+wa_wn**2)
 
         if np.abs(wa_wn) > 0.3*np.abs(uvw_air[0]): # surface stalled ?
-            Z_WN=0.5*rho*self.WN['ZMAX']*np.abs(vta_wn)*wa_wn;
+            Z_WN=0.5*rho*self.WN['ZMAX']*np.abs(vta_wn)*wa_wn
         else:
-            Z_WN=0.5*rho*(self.WN['ZUU']*uvw_air[0]**2+self.WN['ZUW']*uvw_air[0]*wa_wn);
+            Z_WN=0.5*rho*(self.WN['ZUU']*uvw_air[0]**2+self.WN['ZUW']*uvw_air[0]*wa_wn)
         
-        X_WN=-0.5*rho/math.pi/vta_wn**2*(self.WN['ZUU']*uvw_air[0]**2+self.WN['ZUW']*uvw_air[0]*wa_wn)**2; # ? induced drag 
+        X_WN=-0.5*rho/math.pi/vta_wn**2*(self.WN['ZUU']*uvw_air[0]**2+self.WN['ZUW']*uvw_air[0]*wa_wn)**2 # ? induced drag
         power_wn=np.abs(X_WN*uvw_air[0]); # wing power
         force_wn = np.array([X_WN,0,Z_WN])
         moment_wn = np.array([0, 0, 0])        
@@ -306,7 +308,7 @@ class HelicopterDynamics(DynamicSystem):
         pedal = D2R*( self.HELI['PED_OS'] + action[3]*(self.HELI['PED_H'] - self.HELI['PED_L']) + self.HELI['PED_L'] )
 
         ###  Kinematic calculations
-        earth2body = euler_to_rotmat(state['euler']); # Earth to Body DCM matrix
+        earth2body = euler_to_rotmat(state['euler']) # Earth to Body DCM matrix
         body2earth = earth2body.transpose() #  Body to Earth DCM matrix
 
         pqr_to_eulerdot = pqr_to_eulerdot_mat(euler) # par to eulerdot function.
@@ -321,11 +323,11 @@ class HelicopterDynamics(DynamicSystem):
         p_dps, q_dps, r_dps = R2D*pqr[0], R2D*pqr[1], R2D*pqr[2]
         tas = np.linalg.norm(uvw_air) # true air speed in ft/s
         ktas = tas*FTS2KNOT # ktas in knots
-        sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS));# [deg] Sideslip angle
+        sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [deg] Sideslip angle
         aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [def] % Angle of Attack
         ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
         track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [deg] Track angle
-        climb_rate = -ned_vel[2]; # [ft/s] ascending rate (descending if negative)
+        climb_rate = -ned_vel[2] # [ft/s] ascending rate (descending if negative)
         power_climb = self.HELI['WT']*climb_rate # Climbing power [hp]
         altitude = -xyz[2] # [ft] altitude
 

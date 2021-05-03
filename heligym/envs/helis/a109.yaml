@@ -20,7 +20,7 @@ HELI:
     IXZ         : 598   # [slug-ft^2]
     COL_OS      :  6.   # [deg] Collective Offset
     COL_L       : -2.   # [deg] Collective Low 
-    COL_H       : 15.   # [deg] Collective High
+    COL_H       : 12.   # [deg] Collective High
     LON_L       : -12.  # [deg] Lon Cyc Low 
     LON_H       : +12.  # [deg] Lon Cyc High
     LAT_L       : -10.  # [deg] Lat Cyc Low
@@ -36,9 +36,9 @@ HELI:
         E      : 0.5 # [ft] hinge offset
         IB     : 212 # [slug/ft^2] Blade flapping inertia
         R      : 18 # [ft] Radius
-        A      : 6.0 # [1/rad] Blade lift-curve slope
+        A      : 5.8 # [1/rad] Blade lift-curve slope
         RPM    : 385 # RPM
-        CD0    : 0.01 # Blade profile drag coefficient
+        CD0    : 0.009 # Blade profile drag coefficient
         B      : 4 # number of blades
         C      : 1.1 # [ft] Blade Chord
         TWST   : -0.105 # [rad] Blade Twist
@@ -48,10 +48,10 @@ HELI:
         FS     : 391 # [in] hub horizontal location in FS-ref station
         WL     : 70 # [in] hub vertical location in FS-ref station
         R      : 3.1 # [ft] Rotor Radius
-        A      : 3.0 # [1/rad] Blade lift-curve slope
+        A      : 5.0 # [1/rad] Blade lift-curve slope
         C      : 0.6525 # [ft] Blade Chord
         RPM    : 2080 # [rpm] RPM
-        CD0    : 0.01 # Blade profile drag coefficient
+        CD0    : 0.009 # Blade profile drag coefficient
         TWST   : -0.137 # [rad] Blade Twist
         B      : 2 # number of blades
 
