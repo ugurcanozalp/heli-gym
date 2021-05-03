@@ -1,0 +1,21 @@
+# Exported from 3D Builder
+
+newmtl Mat_0
+Kd 1.000000 1.000000 1.000000
+map_Kd aw109_5_T.jpg
+
+newmtl Mat_1
+Kd 1.000000 1.000000 1.000000
+map_Kd aw109_1_T.jpg
+
+newmtl Mat_2
+Kd 1.000000 1.000000 1.000000
+map_Kd aw109_3_T.jpg
+
+newmtl Mat_3
+Kd 1.000000 1.000000 1.000000
+map_Kd aw109_2_T.jpg
+
+newmtl Mat_4
+Kd 1.000000 1.000000 1.000000
+map_Kd aw109_4_T.jpg

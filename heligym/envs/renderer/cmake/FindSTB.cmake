@@ -1,0 +1,26 @@
+SET(_stb_HEADER_SEARCH_DIRS
+"/usr/include"
+"/usr/local/include"
+"${CMAKE_SOURCE_DIR}/include"
+"C:/Program Files (x86)/stb" )
+# check environment variable
+SET(_stb_ENV_ROOT_DIR "$ENV{STB_ROOT_DIR}")
+IF(NOT STB_ROOT_DIR AND _stb_ENV_ROOT_DIR)
+	SET(STB_ROOT_DIR "${_stb_ENV_ROOT_DIR}")
+ENDIF(NOT STB_ROOT_DIR AND _stb_ENV_ROOT_DIR)
+# put user specified location at beginning of search
+IF(STB_ROOT_DIR)
+	SET(_stb_HEADER_SEARCH_DIRS "${STB_ROOT_DIR}"
+	"${STB_ROOT_DIR}/include"
+	${_stb_HEADER_SEARCH_DIRS})
+ENDIF(STB_ROOT_DIR)
+# locate header
+FIND_PATH(STB_INCLUDE_DIR "stb/stb.h"
+PATHS ${_stb_HEADER_SEARCH_DIRS})
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(STB DEFAULT_MSG
+STB_INCLUDE_DIR)
+IF(STB_FOUND)
+	SET(STB_INCLUDE_DIRS "${STB_INCLUDE_DIR}")
+	MESSAGE(STATUS "STB_INCLUDE_DIR = ${STB_INCLUDE_DIR}")
+ENDIF(STB_FOUND)
