@@ -26,7 +26,7 @@ class Heli(gym.Env, EzPickle):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : FPS
     }
-    _default_yaml = os.path.join(os.path.dirname(__file__), "dynamics", "a109_param.yaml")
+    _default_yaml = os.path.join(os.path.dirname(__file__), "helis", "a109.yaml")
     def __init__(self, yaml_path:str = None):
         EzPickle.__init__(self)
         yaml_path = self._default_yaml if yaml_path is None else yaml_path

@@ -20,7 +20,7 @@ class HelicopterDynamics(DynamicSystem):
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
         "ACC_LON", "LAT_ACC", "DWN_ACC", "XPOS", "YPOS", "ALTITUDE", "POWER"]
     
-    _default_yaml = os.path.join(os.path.dirname(__file__), "a109_param.yaml")
+    _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "a109.yaml")
     @classmethod
     def init_yaml(cls, yaml_path: str = None):
         yaml_path = self._default_yaml if yaml_path is None else yaml_path
@@ -146,7 +146,7 @@ class HelicopterDynamics(DynamicSystem):
         DB1DV = 2/self.MR['OMEGA']/self.MR['R']*(8*CT/self.MR['A_SIGMA']+(math.sqrt(CT/2))); 
         DA1DU = -DB1DV; # TPP pitchup with speed   
 
-        wake_fn = 1/(1+np.exp(10*(np.abs(uvw_air[0])-self.HELI['VTRANS'])/self.HELI['VTRANS']))
+        wake_fn = 1/(1+np.exp(10*(np.abs(uvw_air[0])/self.HELI['VTRANS'])-1.0))
         ### MR TPP Dynamics
         a_sum = betas[1]-lon+KC*betas[0]+DB1DV*uvw_air[1]*(1+wake_fn)
         b_sum = betas[0]+lat-KC*betas[1]+DA1DU*uvw_air[0]*(1+2*wake_fn)
