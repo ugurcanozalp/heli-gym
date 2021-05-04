@@ -3,13 +3,10 @@ import sys
 import ctypes
 import numpy as np
 
-
 if sys.platform == 'win32':
     lib = ctypes.cdll.LoadLibrary('Heligym.dll')
 elif sys.platform == 'linux':
-    lib = ctypes.cdll.LoadLibrary('libHeligym.so')
-else:
-    raise NameError
+    lib = ctypes.cdll.LoadLibrary(os.environ['HELIGYM_PYTHON_DIR'] + '/libHeligym.so')
 
 ###################################################################################
 def _to_encode(str_to_encode, encode_type = 'utf-8'):

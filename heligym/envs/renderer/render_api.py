@@ -20,7 +20,7 @@ class Renderer(object):
     def terminate(self):
         api.terminate()
 
-    def create_model(self, rel_path = None, abs_path = None):
+    def create_model(self, rel_path = None, abs_path = None): 
         if rel_path:
             return api.create_model(os.path.dirname(os.path.realpath(__file__)) + rel_path)
         else:
