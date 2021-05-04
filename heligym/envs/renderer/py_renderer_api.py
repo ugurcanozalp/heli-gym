@@ -6,8 +6,10 @@ import numpy as np
 
 if sys.platform == 'win32':
     lib = ctypes.cdll.LoadLibrary('Heligym.dll')
-elif sys.platform == 'Linux':
+elif sys.platform == 'linux':
     lib = ctypes.cdll.LoadLibrary('libHeligym.so')
+else:
+    raise NameError
 
 ###################################################################################
 def _to_encode(str_to_encode, encode_type = 'utf-8'):
