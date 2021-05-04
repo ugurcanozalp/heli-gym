@@ -125,8 +125,8 @@ lib.set_camera_pos.argtypes = [ctypes.c_void_p, ctypes.c_float,
                                 ctypes.c_float, ctypes.c_float]
 lib.set_camera_pos.restype = ctypes.c_void_p
 
-def set_camera_pos(window, x, y, z):
-    lib.set_camera_pos(window, x, y, z)
+def set_camera_pos(camera, x, y, z):
+    lib.set_camera_pos(camera, x, y, z)
 
 ###################################################################################
 lib.get_camera_pos.argtypes = [ctypes.c_void_p]

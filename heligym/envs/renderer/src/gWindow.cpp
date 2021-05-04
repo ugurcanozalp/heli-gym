@@ -51,19 +51,10 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
     this->lastX = SCR_WIDTH / 2.0f;
     this->lastY = SCR_HEIGHT / 2.0f;
 
-    //this->world = new World(this->ourShader);
-
-    // this->heli = new Model("resources/models/a109g/a109.obj");
-    // this->add_permanent_drawables(heli);
-
-    // Model* ground = new Model("resources/models/ground.obj");
-    // this->add_permanent_drawables(ground);
-
     glfwSetWindowUserPointer(this->window, this);
     glfwSetFramebufferSizeCallback(this->window, MainWindow::static_framebuffer_size_callback);
     glfwSetCursorPosCallback(this->window, MainWindow::static_mouse_callback);
     glfwSetScrollCallback(this->window, MainWindow::static_scroll_callback);
-    //glfwSetWindowFocusCallback(this->window, MainWindow::static_window_focus_callback);
 }
 
 void MainWindow::create_shader(std::string shader_file_path)

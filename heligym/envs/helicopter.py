@@ -51,6 +51,7 @@ class Heli(gym.Env, EzPickle):
         self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
         self.renderer.add_permanent_object_to_window(self.sky)
 
+
     def render(self):
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
@@ -59,13 +60,18 @@ class Heli(gym.Env, EzPickle):
                                     )
 
         self.renderer.rotate_model(self.heli_render_obj, 
-                                    self.heli_dyn.state['euler'][0],
-                                    self.heli_dyn.state['euler'][1],
-                                    self.heli_dyn.state['euler'][2]
+                                    self.heli_dyn.state['euler'][0] * R2D,
+                                    self.heli_dyn.state['euler'][1] * R2D,
+                                    self.heli_dyn.state['euler'][2] * R2D
                                     )
 
+        self.renderer.set_camera_pos(self.heli_dyn.state['xyz'][0] * FT2MTR,
+                                    self.heli_dyn.state['xyz'][1] * FT2MTR + 30,
+                                    self.heli_dyn.state['xyz'][2] * FT2MTR)
+
         cam_loc = self.renderer.get_camera_pos()
-        self.renderer.translate_model(self.sky, cam_loc[0], cam_loc[2], cam_loc[1] )
+        cam_loc_x, cam_loc_y, cam_loc_z = self.renderer.coord_from_graphics_to_ned(cam_loc[0], cam_loc[1], cam_loc[2])
+        self.renderer.translate_model(self.sky, cam_loc_x, cam_loc_y, cam_loc_z)
 
         self.renderer.translate_model(self.ground, 0, 0, 10)
 

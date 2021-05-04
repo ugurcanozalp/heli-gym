@@ -7,6 +7,7 @@ class Renderer(object):
         self.window = api.create_window(w, h, title)
         api.create_shader(self.window, os.path.dirname(os.path.realpath(__file__)) + "/resources/shaders")
         self.camera = self.get_camera()
+        print(self.camera)
 
     def render(self):
         api.render(self.window)
@@ -76,7 +77,14 @@ class Renderer(object):
         # In Body-frame Y-axis is perpendicular to X-axis and Z-axis is cross
         # product of the axes. On the other hand, in OpenGL (or Computer Graphics)
         # Z-axis is Y-axis is altered. 
-        api.set_camera_pos(self.window, x, -z, y)
+        api.set_camera_pos(self.camera, x, -z, y)
 
     def get_camera_pos(self):
         return api.get_camera_pos(self.camera)
+
+    def coord_from_graphics_to_ned(self, x, y, z):
+        """
+            Convert OpenGL coordinates to North, East and Down (NED)
+            frame coordinates.
+        """
+        return x, z, -y

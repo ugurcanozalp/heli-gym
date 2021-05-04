@@ -81,6 +81,7 @@ Camera* get_camera(MainWindow* window)
 void set_camera_pos(Camera* camera, float x, float y, float z)
 {
 	camera->Position = glm::vec3(x, y, z);
+	camera->updateCameraVectors();
 }
 
 float* get_camera_pos(Camera* camera)
