@@ -16,6 +16,7 @@ private:
     unsigned int SCR_HEIGHT;
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
+    float updateTime = 0.0f;
     float lastX = 0.0f;
     float lastY = 0.0f;
     bool firstMouse = true;
@@ -33,7 +34,8 @@ public:
     //World* world;
     Model* heli;
 
-    float FPS= 1e-7;
+    float FPS = 1e-7;
+    float FPS_limit = 50.0; 
 
     MainWindow() {};
 

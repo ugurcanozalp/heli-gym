@@ -108,6 +108,13 @@ def get_fps(window):
     return np.round(lib.get_fps(window), 2)
 
 ###################################################################################
+lib.set_fps.argtypes = [ctypes.c_void_p, ctypes.c_float]
+lib.set_fps.restype = ctypes.c_void_p
+
+def set_fps(window, fps):
+    lib.set_fps(window, fps)
+
+###################################################################################
 lib.get_camera.argtypes = [ctypes.c_void_p]
 lib.get_camera.restype = ctypes.c_void_p
 

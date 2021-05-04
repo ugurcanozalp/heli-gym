@@ -64,6 +64,9 @@ class Renderer(object):
     def get_fps(self):
         return api.get_fps(self.window)
 
+    def set_fps(self, fps):
+        api.set_fps(self.window, fps)
+
     def get_camera(self):
         return api.get_camera(self.window)
 

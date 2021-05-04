@@ -84,18 +84,15 @@ void MainWindow::render()
     // --------------------
         float currentFrame = glfwGetTime();
         this->deltaTime = currentFrame - this->lastFrame;
-        this->lastFrame = currentFrame;
-
-        this->FPS = 1.0 / (this->deltaTime + 1e-7);
 
         // input
         // -----
         processInput(this->window);
 
         // render
-        // ------
+           // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                
 
         // activate shader
         this->ourShader->use();
@@ -108,16 +105,23 @@ void MainWindow::render()
         glm::mat4 view = this->camera->GetViewMatrix();
         glm::mat4 p_v = projection * view;
         this->ourShader->setMat4("projection_view", p_v);
-
         // draw
         //this->world->draw();
         this->draw();
 
+        if ((currentFrame - this->lastFrame) >= 1.0/this->FPS_limit)
+        {
+            // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+            // -------------------------------------------------------------------------------
+            this->FPS = 1.0 / (this->deltaTime + 1e-7);
+            //std::cout << "FPS : " << this->FPS << std::endl;
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(this->window);
-        glfwPollEvents();
+            glfwSwapBuffers(this->window);
+            glfwPollEvents();
+            this->lastFrame = currentFrame;
+        }
+
+        this->updateTime = currentFrame;
     }
 }
 

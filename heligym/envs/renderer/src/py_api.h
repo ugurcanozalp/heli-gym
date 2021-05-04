@@ -38,3 +38,13 @@ extern "C" RENDERER_API void rotate_model(Model* model, float angle, float x, fl
 extern "C" RENDERER_API void scale_model(Model* model, float x, float y, float z);
 
 extern "C" RENDERER_API float get_fps(MainWindow* window);
+
+extern "C" RENDERER_API void set_fps(MainWindow * window, float fps);
+
+extern "C" RENDERER_API Camera* get_camera(MainWindow * window);
+
+extern "C" RENDERER_API void set_camera_pos(Camera* camera, float x, float y, float z);
+
+extern "C" RENDERER_API float* get_camera_pos(Camera * camera);
+
+

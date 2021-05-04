@@ -32,7 +32,7 @@ public:
     float Yaw;
     float Pitch;
     // camera options
-    float MovementSpeed = 100.5f;
+    float MovementSpeed = 50.5f;
     float MouseSensitivity = 0.1f;
     float Zoom = 45.0f;
     float boost = 0.0f;

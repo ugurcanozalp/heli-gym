@@ -67,3 +67,23 @@ float get_fps(MainWindow* window)
 {
 	return window->FPS;
 }
+
+void set_fps(MainWindow* window, float fps)
+{
+	window->FPS_limit = fps;
+}
+
+Camera* get_camera(MainWindow* window)
+{
+	return window->camera;
+}
+
+void set_camera_pos(Camera* camera, float x, float y, float z)
+{
+	camera->Position = glm::vec3(x, y, z);
+}
+
+float* get_camera_pos(Camera* camera)
+{
+	return glm::value_ptr(camera->Position);
+}

@@ -13,13 +13,15 @@ from gym import spaces
 from gym.utils import seeding, EzPickle
 
 from .dynamics import HelicopterDynamics
+from .renderer.render_api import Renderer
 
-FPS         = 100.0
+FPS         = 50.0
 DT          = 1/FPS
 FTS2KNOT    = 0.5924838; # ft/s to knots conversion
 EPS         = 1e-10; # small value for divison by zero
 R2D         = 180/math.pi; # Rad to deg
 D2R         = 1/R2D;
+FT2MTR      = 0.3048 # ft to meter
 
 class Heli(gym.Env, EzPickle):
     metadata = {
@@ -36,11 +38,40 @@ class Heli(gym.Env, EzPickle):
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
-        self.renderer = None
+        
+        self.renderer = Renderer(w=1200, h=800, title='Heligym')
+        self.renderer.set_fps(FPS)
+
+        self.heli_render_obj = self.renderer.create_model('/resources/models/a109/a109.obj')
+        self.renderer.add_permanent_object_to_window(self.heli_render_obj)
+
+        self.ground = self.renderer.create_model('/resources/models/ground/ground.obj')
+        self.renderer.add_permanent_object_to_window(self.ground)
+
+        self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
+        self.renderer.add_permanent_object_to_window(self.sky)
 
     def render(self):
-        # return self.renderer()
-        return self.heli_dyn.render_text()
+        self.renderer.translate_model(self.heli_render_obj, 
+                                    self.heli_dyn.state['xyz'][0] * FT2MTR,
+                                    self.heli_dyn.state['xyz'][1] * FT2MTR,
+                                    self.heli_dyn.state['xyz'][2] * FT2MTR
+                                    )
+
+        self.renderer.rotate_model(self.heli_render_obj, 
+                                    self.heli_dyn.state['euler'][0],
+                                    self.heli_dyn.state['euler'][1],
+                                    self.heli_dyn.state['euler'][2]
+                                    )
+
+        cam_loc = self.renderer.get_camera_pos()
+        self.renderer.translate_model(self.sky, cam_loc[0], cam_loc[2], cam_loc[1] )
+
+        self.renderer.translate_model(self.ground, 0, 0, 10)
+
+        self.renderer.render()
+        self.heli_dyn.render_text()
+        
 
     def step(self, actions):
         self.time_counter += DT
