@@ -3,8 +3,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(Heligym)
 
-list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
-
 # Add .lib files
 link_directories(${CMAKE_SOURCE_DIR}/libs)
 
