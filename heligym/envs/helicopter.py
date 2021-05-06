@@ -38,7 +38,7 @@ class Heli(gym.Env, EzPickle):
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
-        
+
         self.renderer = Renderer(w=1200, h=800, title='Heligym')
         self.renderer.set_fps(FPS)
 
@@ -53,6 +53,7 @@ class Heli(gym.Env, EzPickle):
 
 
     def render(self, mode="human"):
+
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
                                     self.heli_dyn.state['xyz'][1] * FT2MTR,
@@ -76,7 +77,8 @@ class Heli(gym.Env, EzPickle):
         self.renderer.translate_model(self.ground, 0, 0, 10)
 
         self.renderer.render()
-        #self.heli_dyn.render_text()
+
+        self.heli_dyn.render_text()
         
 
     def step(self, actions):

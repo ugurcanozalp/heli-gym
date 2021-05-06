@@ -165,7 +165,7 @@ class HelicopterDynamics(DynamicSystem):
             thrust_mr = (wb - vi_mr) * rho*(self.MR['R']**2*COEF/4);
             v_hat_2 = uvw_air[0]**2 + uvw_air[1]**2 + wr*(wr-2*vi_mr)
             vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_mr/(2*math.pi*rho*self.MR['R']**2))**2 ) - v_hat_2/2
-            vi_mr = np.sqrt(np.abs(vi_2))#*np.sign(wb)
+            vi_mr = np.sqrt(np.abs(vi_2))
 
         # MR induced flow power consumption
         induced_power=thrust_mr*vi_mr
@@ -200,7 +200,7 @@ class HelicopterDynamics(DynamicSystem):
             thrust_tr = (vb - vi_tr)*rho*(self.TR['R']**2*COEF/4)
             v_hat_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2 + vr*(vr-2*vi_tr)
             vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_tr/(2*math.pi*rho*self.TR['R']**2))**2 ) - v_hat_2/2
-            vi_tr = np.sqrt(np.abs(vi_2))#*np.sign(vb)
+            vi_tr = np.sqrt(np.abs(vi_2))
 
         power_tr = thrust_tr*vi_tr
         # torque=power_tr/self.TR['OMEGA'];
