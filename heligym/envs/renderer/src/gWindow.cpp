@@ -10,6 +10,8 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
 
     #ifdef __APPLE__
             glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -29,8 +31,6 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
 
     glfwMakeContextCurrent(this->window);
 
-    // tell GLFW to capture our mouse
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -50,6 +50,9 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
 
     this->lastX = SCR_WIDTH / 2.0f;
     this->lastY = SCR_HEIGHT / 2.0f;
+
+
+    glfwSetInputMode(this->window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 
     glfwSetWindowUserPointer(this->window, this);
     glfwSetFramebufferSizeCallback(this->window, MainWindow::static_framebuffer_size_callback);
@@ -121,80 +124,7 @@ void MainWindow::render()
 // ---------------------------------------------------------------------------------------------------------
 void MainWindow::processInput(GLFWwindow* window)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(BOOST, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(RIGHT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(UP, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-        this->camera->ProcessKeyboard(DOWN, deltaTime);
-
-    // if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    //     this->heli->translate(glm::vec3(1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    //     this->heli->translate(glm::vec3(-1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    //     this->heli->translate(glm::vec3(0.0, 0.0, -1.0));
-    // if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    //     this->heli->translate(glm::vec3(0.0, 0.0, 1.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS)
-    //     this->heli->translate(glm::vec3(0.0, 1.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_0) == GLFW_PRESS)
-    //     this->heli->translate(glm::vec3(0.0, -1.0, 0.0));
-
-    // if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS)
-    //     this->heli->rotate(30.0f / 60, glm::vec3(1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
-    //     this->heli->rotate(30.0f / 60, glm::vec3(-1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
-    //     this->heli->rotate(-10.0f / 60, glm::vec3(0.0, 0.0, 1.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS)
-    //     this->heli->rotate(10.0f / 60, glm::vec3(0.0, 0.0, 1.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
-    //     this->heli->rotate(10.0f / 60, glm::vec3(0.0, 1.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_KP_9) == GLFW_PRESS)
-    //     this->heli->rotate(-10.0f / 60, glm::vec3(0.0, 1.0, 0.0));
-
-    // if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-    //     this->world->c_obj->translate(glm::vec3(1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-    //     this->world->c_obj->translate(glm::vec3(-1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-    //     this->world->c_obj->translate(glm::vec3(0.0, 0.0, -1.0));
-    // if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-    //     this->world->c_obj->translate(glm::vec3(0.0, 0.0, 1.0));
-    // if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-    //     this->world->c_obj->translate(glm::vec3(0.0, 1.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
-    //     this->world->c_obj->translate(glm::vec3(0.0, -1.0, 0.0));
-
-    // if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-    //     this->world->c_obj->rotate(1.0f / 60, glm::vec3(1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-    //     this->world->c_obj->rotate(1.0f / 60, glm::vec3(-1.0, 0.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
-    //     this->world->c_obj->rotate(1.0f / 60, glm::vec3(0.0, 0.0, -1.0));
-    // if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
-    //     this->world->c_obj->rotate(1.0f / 60, glm::vec3(0.0, 0.0, 1.0));
-    // if (glfwGetKey(window, GLFW_KEY_F6) == GLFW_PRESS)
-    //     this->world->c_obj->rotate(1.0f / 60, glm::vec3(0.0, 1.0, 0.0));
-    // if (glfwGetKey(window, GLFW_KEY_F5) == GLFW_PRESS)
-    //     this->world->c_obj->rotate(1.0f / 60, glm::vec3(0.0, -1.0, 0.0));
-
-
-    
+        
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -218,14 +148,20 @@ void MainWindow::mouse_callback(GLFWwindow* window, double xpos, double ypos)
         firstMouse = false;
     }
 
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    this->xoffset = xpos - lastX;
+    this->yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
     lastX = xpos;
     lastY = ypos;
 
-    this->camera->ProcessMouseMovement(xoffset, yoffset);
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        this->camera->ProcessMouseMovement(-this->xoffset, -this->yoffset);
+    }
+       
 }
+
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------

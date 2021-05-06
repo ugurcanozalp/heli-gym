@@ -30,6 +30,12 @@ include_directories(${CMAKE_BINARY_DIR}/src)
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
 #add_executable(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 
+if (WIN32)	
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+	endif()
+endif()
+
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/python

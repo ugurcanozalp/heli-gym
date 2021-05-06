@@ -48,7 +48,7 @@ def is_close(window):
     return lib.is_close(window)  
 
 ###################################################################################
-lib.terminate.argtypes = [ctypes.c_void_p]
+lib.terminate.argtypes = []
 lib.terminate.restype = ctypes.c_void_p
 
 def terminate():
@@ -136,4 +136,23 @@ def get_camera_pos(camera):
     return lib.get_camera_pos(camera)
 
 ###################################################################################
+lib.is_visible.argtypes = [ctypes.c_void_p]
+lib.is_visible.restype = ctypes.c_bool
+
+def is_visible(window):
+    return lib.is_visible(window)
+
+###################################################################################
+lib.hide_window.argtypes = [ctypes.c_void_p]
+lib.hide_window.restype = ctypes.c_void_p
+
+def hide_window(window):
+    lib.hide_window(window)
+
+###################################################################################
+lib.show_window.argtypes = [ctypes.c_void_p]
+lib.show_window.restype = ctypes.c_void_p
+
+def show_window(window):
+    lib.show_window(window)
 

@@ -18,7 +18,9 @@ private:
     float lastFrame = 0.0f;
     float updateTime = 0.0f;
     float lastX = 0.0f;
+    float xoffset = 0.0f;
     float lastY = 0.0f;
+    float yoffset = 0.0f;
     bool firstMouse = true;
     bool focues = false;
 

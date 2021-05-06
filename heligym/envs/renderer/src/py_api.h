@@ -39,12 +39,18 @@ extern "C" RENDERER_API void scale_model(Model* model, float x, float y, float z
 
 extern "C" RENDERER_API float get_fps(MainWindow* window);
 
-extern "C" RENDERER_API void set_fps(MainWindow * window, float fps);
+extern "C" RENDERER_API void set_fps(MainWindow* window, float fps);
 
-extern "C" RENDERER_API Camera* get_camera(MainWindow * window);
+extern "C" RENDERER_API Camera* get_camera(MainWindow* window);
 
 extern "C" RENDERER_API void set_camera_pos(Camera* camera, float x, float y, float z);
 
 extern "C" RENDERER_API float* get_camera_pos(Camera * camera);
+
+extern "C" RENDERER_API bool is_visible(MainWindow * window);
+
+extern "C" RENDERER_API void hide_window(MainWindow* window);
+
+extern "C" RENDERER_API void show_window(MainWindow* window);
 
 

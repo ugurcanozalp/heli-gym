@@ -5,6 +5,7 @@ import os
 class Renderer(object):
     def __init__(self, w = 800, h = 600, title="heligym-renderer"):
         self.window = api.create_window(w, h, title)
+        #self.hide_window()
         api.create_shader(self.window, os.path.dirname(os.path.realpath(__file__)) + "/resources/shaders")
         self.camera = self.get_camera()
 
@@ -87,3 +88,12 @@ class Renderer(object):
             frame coordinates.
         """
         return x, z, -y
+
+    def is_visible(self):
+        return api.is_visible(self.window)
+
+    def hide_window(self):
+        api.hide_window(self.window)
+
+    def show_window(self):
+        api.show_window(self.window)

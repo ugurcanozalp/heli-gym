@@ -88,3 +88,20 @@ float* get_camera_pos(Camera* camera)
 {
 	return glm::value_ptr(camera->Position);
 }
+
+
+bool is_visible(MainWindow* window)
+{
+	int visible = glfwGetWindowAttrib(window->window, GLFW_VISIBLE);
+	return visible;
+}
+
+void hide_window(MainWindow* window)
+{
+	glfwHideWindow(window->window);
+}
+
+void show_window(MainWindow* window)
+{
+	glfwShowWindow(window->window);
+}
