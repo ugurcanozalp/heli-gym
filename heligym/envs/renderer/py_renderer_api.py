@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 
 if sys.platform == 'win32':
-    lib = ctypes.cdll.LoadLibrary('Heligym.dll')
+    lib = ctypes.cdll.LoadLibrary(os.environ['HELIGYM_PYTHON_DIR'] + '/Heligym.dll')
 elif sys.platform == 'linux':
     lib = ctypes.cdll.LoadLibrary(os.environ['HELIGYM_PYTHON_DIR'] + '/libHeligym.so')
 

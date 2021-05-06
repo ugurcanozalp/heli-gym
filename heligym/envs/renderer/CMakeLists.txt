@@ -7,8 +7,10 @@ project(Heligym)
 link_directories(${CMAKE_SOURCE_DIR}/libs)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+	SET(CMAKE_BUILD_TYPE "Release")
 endif()
+
+SET(CMAKE_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
 
 
 # Add source files

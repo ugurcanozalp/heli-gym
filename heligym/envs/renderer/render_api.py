@@ -7,7 +7,6 @@ class Renderer(object):
         self.window = api.create_window(w, h, title)
         api.create_shader(self.window, os.path.dirname(os.path.realpath(__file__)) + "/resources/shaders")
         self.camera = self.get_camera()
-        print(self.camera)
 
     def render(self):
         api.render(self.window)
