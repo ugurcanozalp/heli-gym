@@ -52,7 +52,7 @@ class Heli(gym.Env, EzPickle):
         self.renderer.add_permanent_object_to_window(self.sky)
 
 
-    def render(self):
+    def render(self, mode="human"):
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
                                     self.heli_dyn.state['xyz'][1] * FT2MTR,
@@ -76,7 +76,7 @@ class Heli(gym.Env, EzPickle):
         self.renderer.translate_model(self.ground, 0, 0, 10)
 
         self.renderer.render()
-        self.heli_dyn.render_text()
+        #self.heli_dyn.render_text()
         
 
     def step(self, actions):

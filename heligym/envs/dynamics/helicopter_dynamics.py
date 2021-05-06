@@ -159,15 +159,13 @@ class HelicopterDynamics(DynamicSystem):
         wb = wr + 2/3*self.MR['OMEGA']*self.MR['R']*(coll+0.75*self.MR['TWST']) # z-axis vel re blade (equivalent)
         
         COEF = self.MR['OMEGA']*self.MR['A']*self.MR['B']*self.MR['C']
-        #b,c = COEF/(8*math.pi), -wb*COEF/(8*math.pi)
-        #vi_mr = 0.5*(-b + np.sqrt(np.max([0, b**2 + 4*c]))) # Initialization
-        vi_mr = 0.0
+        vi_mr = 10.0
 
         for i in range(20):
             thrust_mr = (wb - vi_mr) * rho*(self.MR['R']**2*COEF/4);
             v_hat_2 = uvw_air[0]**2 + uvw_air[1]**2 + wr*(wr-2*vi_mr)
-            vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_mr/(2*math.pi*rho*self.MR['R']**2))**2 ) - v_hat_2
-            vi_mr = np.sqrt(np.abs(vi_2))
+            vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_mr/(2*math.pi*rho*self.MR['R']**2))**2 ) - v_hat_2/2
+            vi_mr = np.sqrt(np.abs(vi_2))#*np.sign(wb)
 
         # MR induced flow power consumption
         induced_power=thrust_mr*vi_mr
@@ -196,14 +194,13 @@ class HelicopterDynamics(DynamicSystem):
         vb = vr + 2/3*self.TR['OMEGA']*self.TR['R']*(pedal+0.75*self.TR['TWST']) # vel re blade plane (equivalent)
         
         COEF = self.TR['OMEGA']*self.TR['A']*self.TR['B']*self.TR['C']
-        #b,c = COEF/(8*math.pi), -vb*COEF/(8*math.pi)
-        #vi_tr = 0.5*(-b + np.sqrt(np.max([0, b**2 + 4*c]))) # Initialization
-        vi_tr = 0.0
+        vi_tr = 10.0
+
         for i in range(20):
             thrust_tr = (vb - vi_tr)*rho*(self.TR['R']**2*COEF/4)
             v_hat_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2 + vr*(vr-2*vi_tr)
-            vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_tr/(2*math.pi*rho*self.TR['R']**2))**2 ) - v_hat_2
-            vi_tr = np.sqrt(np.abs(vi_2))
+            vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_tr/(2*math.pi*rho*self.TR['R']**2))**2 ) - v_hat_2/2
+            vi_tr = np.sqrt(np.abs(vi_2))#*np.sign(vb)
 
         power_tr = thrust_tr*vi_tr
         # torque=power_tr/self.TR['OMEGA'];
