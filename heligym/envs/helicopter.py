@@ -76,10 +76,17 @@ class Heli(gym.Env, EzPickle):
 
         self.renderer.translate_model(self.ground, 0, 0, 10)
 
+        if not self.renderer.is_visible():
+            self.renderer.show_window()
         self.renderer.render()
-
         self.heli_dyn.render_text()
         
+    def close(self):
+        self.renderer.close()
+        self.renderer.terminate()
+
+    def exit(self):
+        sys.exit()
 
     def step(self, actions):
         self.time_counter += DT

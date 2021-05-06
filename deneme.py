@@ -2,10 +2,20 @@ import gym
 import heligym
 import numpy as np
 
-env = gym.make("HeliHover-v0")
+env = heligym.HeliHover()
 env.reset()
 
-action = np.array([0.01, 0.5, 0.5, 0.01])
+for i in range(1000000):
+    print(i)
 
-for i in range(100):
-    obs, reward, info, done = env.step(action)
+    _, _, done, _ = env.step(np.array([0.25, 0.5, 0.45, 0.35]))
+    #done = False
+
+    env.render()
+
+    if done:
+        #env.close()
+        print('probleeem')
+        break
+
+print("hello world!")
