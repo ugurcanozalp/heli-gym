@@ -53,4 +53,6 @@ extern "C" RENDERER_API void hide_window(MainWindow* window);
 
 extern "C" RENDERER_API void show_window(MainWindow* window);
 
+extern "C" RENDERER_API void add_guiOBS(MainWindow* window, int size, char** _str, float* _val);
 
+extern "C" RENDERER_API void set_guiOBS(MainWindow * window, float* _val);

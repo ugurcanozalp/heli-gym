@@ -8,6 +8,10 @@ if sys.platform == 'win32':
 elif sys.platform == 'linux':
     lib = ctypes.cdll.LoadLibrary(os.environ['HELIGYM_PYTHON_DIR'] + '/libHeligym.so')
 
+class guiText(ctypes.Structure):
+    _fields_ = [('str', ctypes.POINTER(ctypes.c_char_p)), 
+                ('val', ctypes.POINTER(ctypes.c_float))]
+
 ###################################################################################
 def _to_encode(str_to_encode, encode_type = 'utf-8'):
     return str_to_encode.encode(encode_type)
@@ -156,3 +160,23 @@ lib.show_window.restype = ctypes.c_void_p
 def show_window(window):
     lib.show_window(window)
 
+###################################################################################
+lib.add_guiOBS.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p), np.ctypeslib.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS')]
+lib.add_guiOBS.restype = ctypes.c_void_p
+
+def add_guiOBS(window, str, val):
+    str_arr = (ctypes.c_char_p * (len(str)))()    
+    str_arr[:] = str
+
+    # for i in val:
+    #     print(id(i), i)
+    lib.add_guiOBS(window, len(str), str_arr, val.astype(np.float32) )
+
+###################################################################################
+lib.set_guiOBS.argtypes = [ctypes.c_void_p, np.ctypeslib.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS')]
+lib.set_guiOBS.restype = ctypes.c_void_p
+
+def set_guiOBS(window, str, val):
+    str_arr = (ctypes.c_char_p * (len(str)))()
+    str_arr[:] = str
+    lib.set_guiOBS(window, val.astype(np.float32) )

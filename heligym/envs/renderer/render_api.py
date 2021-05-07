@@ -1,6 +1,7 @@
 from . import py_renderer_api as api
 import numpy as np
 import os
+import ctypes
 
 class Renderer(object):
     def __init__(self, w = 800, h = 600, title="heligym-renderer"):
@@ -97,3 +98,9 @@ class Renderer(object):
 
     def show_window(self):
         api.show_window(self.window)
+
+    def add_guiOBS(self, str, val):
+        api.add_guiOBS(self.window, str, val)
+
+    def set_guiOBS(self, str, val):
+        api.set_guiOBS(self.window, str, val)

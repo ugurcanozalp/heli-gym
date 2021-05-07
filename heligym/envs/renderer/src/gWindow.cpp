@@ -58,6 +58,18 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
     glfwSetFramebufferSizeCallback(this->window, MainWindow::static_framebuffer_size_callback);
     glfwSetCursorPosCallback(this->window, MainWindow::static_mouse_callback);
     glfwSetScrollCallback(this->window, MainWindow::static_scroll_callback);
+
+    // Create gui 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui_ImplGlfw_InitForOpenGL(this->window, true);
+    ImGui_ImplOpenGL3_Init("#version 150");
+
+
+    this->add_item_to_guiText(&this->guiOBS, "FPS : %3.f", &this->FPS);
+
 }
 
 void MainWindow::create_shader(std::string shader_file_path)
@@ -84,13 +96,14 @@ void MainWindow::render()
         processInput(this->window);
 
         // render
-           // ------
+        // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                
 
         // activate shader
         this->ourShader->use();
 
+       
         // pass projection matrix to shader (note that in this case it could change every frame)
         glm::mat4 projection = glm::perspective(glm::radians(this->camera->Zoom), (float)this->SCR_WIDTH / (float)this->SCR_HEIGHT, 0.1f, 2000.0f);
         //this->ourShader->setMat4("projection", projection);
@@ -99,24 +112,57 @@ void MainWindow::render()
         glm::mat4 view = this->camera->GetViewMatrix();
         glm::mat4 p_v = projection * view;
         this->ourShader->setMat4("projection_view", p_v);
-        // draw
-        //this->world->draw();
-        this->draw();
 
-        if ((currentFrame - this->lastFrame) >= 1.0/this->FPS_limit)
+        this->renderGUI();
+
+        // draw
+        this->draw();
+        
+        if (this->deltaTime >= 1.0/this->FPS_limit)
         {
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
             // -------------------------------------------------------------------------------
             this->FPS = 1.0 / (this->deltaTime + 1e-7);
-            //std::cout << "FPS : " << this->FPS << std::endl;
+                     
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(this->window);
             glfwPollEvents();
             this->lastFrame = currentFrame;
         }
 
+
         this->updateTime = currentFrame;
     }
+    else
+    {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
+}
+
+
+void MainWindow::renderGUI()
+{
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImVec2 info_pos = ImVec2(30.0f, 30.0f);
+    ImGui::SetNextWindowPos(info_pos);
+    ImGui::SetNextWindowSize(ImVec2(250, 0));
+    ImGui::Begin("Observations!");
+
+    for (int i = 0; i < this->guiOBS.size(); i++)
+    {
+        ImGui::Text(this->guiOBS[i].str, *this->guiOBS[i].val);
+    }
+
+    ImGui::End();
+
+    ImGui::Render();
 }
 
 
@@ -231,4 +277,24 @@ void MainWindow::draw()
 		this->instantaneous_drawables[i]->draw(*this->ourShader);
 	}
 	this->instantaneous_drawables.clear();
+}
+
+
+void MainWindow::add_item_to_guiText(std::vector<guiText>* _guiText, char* str, float* val)
+{
+    guiText* temp = new guiText(str, val);
+    _guiText->push_back(*temp);
+    delete temp;
+}
+
+
+
+void MainWindow::set_guiOBS( float* val)
+{
+    for (int i = 0; i < this->guiOBS.size(); i++)
+    {
+        //std::cout << str[i] << std::endl;
+        //this->guiOBS[i + 1].str = str[i];
+        this->guiOBS[i + 1].val = &val[i] ;
+    }
 }

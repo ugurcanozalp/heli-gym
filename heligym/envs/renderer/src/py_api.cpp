@@ -1,4 +1,5 @@
 #include "py_api.h"
+#include <cstdint>
 
 void create_shader(MainWindow* window, char* path)
 {
@@ -104,4 +105,17 @@ void hide_window(MainWindow* window)
 void show_window(MainWindow* window)
 {
 	glfwShowWindow(window->window);
+}
+
+void add_guiOBS(MainWindow* window, int size, char** _str, float* _val)
+{
+	for (int i = 0; i < size; i++)
+	{
+		window->add_item_to_guiText(&window->guiOBS, _str[i], &_val[i] );
+	}
+}
+
+void set_guiOBS(MainWindow* window, float* _val)
+{
+	window->set_guiOBS(_val);
 }
