@@ -165,7 +165,7 @@ class HelicopterDynamics(DynamicSystem):
             thrust_mr = (wb - vi_mr) * rho*(self.MR['R']**2*COEF/4);
             v_hat_2 = uvw_air[0]**2 + uvw_air[1]**2 + wr*(wr-2*vi_mr)
             vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_mr/(2*math.pi*rho*self.MR['R']**2))**2 ) - v_hat_2/2
-            vi_mr = np.sqrt(np.abs(vi_2))
+            vi_mr = np.sqrt(np.abs(vi_2))#*np.sign(wb)
 
         # MR induced flow power consumption
         induced_power=thrust_mr*vi_mr
@@ -200,7 +200,7 @@ class HelicopterDynamics(DynamicSystem):
             thrust_tr = (vb - vi_tr)*rho*(self.TR['R']**2*COEF/4)
             v_hat_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2 + vr*(vr-2*vi_tr)
             vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_tr/(2*math.pi*rho*self.TR['R']**2))**2 ) - v_hat_2/2
-            vi_tr = np.sqrt(np.abs(vi_2))
+            vi_tr = np.sqrt(np.abs(vi_2))#*np.sign(vb)
 
         power_tr = thrust_tr*vi_tr
         # torque=power_tr/self.TR['OMEGA'];
@@ -378,28 +378,3 @@ class HelicopterDynamics(DynamicSystem):
 
         return state_dots, observartion
        
-    def render_text(self):
-        obs = self.get_observation()
-        text = f""" \t-----SENSOR READINGS-----
-            POWER \t\t\t: {obs[0]:5.2f} hp
-            TAS \t\t\t: {obs[1]:5.2f} ft/s
-            AOA \t\t\t: {obs[2]:5.2f} °
-            SSLIP \t\t\t: {obs[3]:5.2f} °
-            GRS \t\t\t: {obs[4]:5.2f} ft/s
-            TRACK \t\t\t: {obs[5]:5.2f} °
-            CLIMB_RATE \t\t\t: {obs[6]:5.2f} ft/s
-            ROLL \t\t\t: {obs[7]:5.2f} °
-            PITCH \t\t\t: {obs[8]:5.2f} °
-            YAW \t\t\t: {obs[9]:5.2f} °
-            ROLL_RATE \t\t\t: {obs[10]:5.2f} °/sec
-            PITCH_RATE \t\t\t: {obs[11]:5.2f} °/sec
-            YAW_RATE \t\t\t: {obs[12]:5.2f} °/sec
-            LON_ACC \t\t\t: {obs[13]:5.2f} ft/sec^2
-            LAT_ACC \t\t\t: {obs[14]:5.2f} ft/sec^2
-            DWN_ACC \t\t\t: {obs[15]:5.2f} ft/sec^2
-            X_LOC \t\t\t: {obs[16]:5.2f} ft
-            Y_LOC \t\t\t: {obs[17]:5.2f} ft
-            Z_LOC \t\t\t: {obs[18]:5.2f} ft
-
-        """
-        return print(text, sep=' ', end='', flush=True)

@@ -38,7 +38,7 @@ class Heli(gym.Env, EzPickle):
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
-
+        
         self.renderer = Renderer(w=1200, h=800, title='Heligym')
         self.renderer.set_fps(FPS)
 
@@ -51,9 +51,42 @@ class Heli(gym.Env, EzPickle):
         self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
         self.renderer.add_permanent_object_to_window(self.sky)
 
+        self.guiINFO_text = []
+        self.guiINFO_val = self.heli_dyn.get_observation()
 
-    def render(self, mode="human"):
+        self.__create_guiINFO_text()
+        self.__add_to_guiText()
 
+    def __create_guiINFO_text(self):
+        self.guiINFO_text.append( bytes( "POWER      : %5.2f hp" , 'utf-8'))
+        self.guiINFO_text.append( bytes( "TAS        : %5.2f ft/s", 'utf-8'))
+        self.guiINFO_text.append( bytes( "AOA        : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "SSLIP      : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "GRS        : %5.2f ft/s", 'utf-8'))
+        self.guiINFO_text.append( bytes( "TRACK      : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "CLIMB_RATE : %5.2f ft/s", 'utf-8'))
+        self.guiINFO_text.append( bytes( "ROLL       : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "PITCH      : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "YAW        : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "ROLL_RATE  : %5.2f °/sec", 'utf-8'))
+        self.guiINFO_text.append( bytes( "PITCH_RATE : %5.2f °/sec", 'utf-8'))
+        self.guiINFO_text.append( bytes( "YAW_RATE   : %5.2f °/sec", 'utf-8'))
+        self.guiINFO_text.append( bytes( "LON_ACC    : %5.2f ft/sec^2", 'utf-8'))
+        self.guiINFO_text.append( bytes( "LAT_ACC    : %5.2f ft/sec^2", 'utf-8'))
+        self.guiINFO_text.append( bytes( "DWN_ACC    : %5.2f ft/sec^2", 'utf-8'))
+        self.guiINFO_text.append( bytes( "X_LOC      : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append( bytes( "Y_LOC      : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append( bytes( "Z_LOC      : %5.2f ft", 'utf-8'))
+
+    def __add_to_guiText(self):
+        self.renderer.add_guiOBS(self.guiINFO_text, self.guiINFO_val)
+
+
+
+    def render(self):
+        self.guiINFO_val = self.heli_dyn.get_observation()
+        self.renderer.set_guiOBS(self.guiINFO_text, self.guiINFO_val)
+        
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
                                     self.heli_dyn.state['xyz'][1] * FT2MTR,
@@ -79,12 +112,12 @@ class Heli(gym.Env, EzPickle):
         if not self.renderer.is_visible():
             self.renderer.show_window()
         self.renderer.render()
-        self.heli_dyn.render_text()
         
+
     def close(self):
         self.renderer.close()
         self.renderer.terminate()
-
+    
     def exit(self):
         sys.exit()
 
