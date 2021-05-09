@@ -38,6 +38,8 @@ class HelicopterDynamics(DynamicSystem):
         self.set_wind() # wind velocity in earth frame:
 
     def reset(self):
+        self.register_state('vi_mr', np.array([10.0]))
+        self.register_state('vi_tr', np.array([10.0]))
         self.register_state('betas', np.array([0.0, 0.0]))
         self.register_state('uvw', np.array([0.0, 0.0, 0.0]))
         self.register_state('pqr', np.array([0.0, 0.0, 0.0]))
@@ -96,6 +98,7 @@ class HelicopterDynamics(DynamicSystem):
         # Tail Rotor precalculations
         self.TR['OMEGA'] = self.TR['RPM']*2*math.pi/60 # [rad/s] TR rev speed
         self.TR['FR'] = self.TR['CD0']*self.TR['R']*self.TR['B']*self.TR['C'] # eff.frontal area TR
+        self.TR['V_TIP'] = self.TR['R']*self.TR['OMEGA'] # [ft/s] TR tip speed
         self.TR['SOL'] = self.TR['B']*self.TR['C']/(self.TR['R']*math.pi) # TR solidity (SIGMA)
         # Inertia
         #print(self.HELI['IX'])
@@ -120,7 +123,7 @@ class HelicopterDynamics(DynamicSystem):
     def _ground_touching_altitude(self):
         return self.HELI['WL_CG']/12 - EPS # divide by 12 to make inch to feet
 
-    def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr):
+    def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr):
         """Calculate Forces and Moments caused by Main Rotor
         ans Main Rotor Dynamics
         """
@@ -139,41 +142,41 @@ class HelicopterDynamics(DynamicSystem):
             (1.5*self.MR['IB']*self.MR['E']/self.MR['R']*self.MR['OMEGA']**2)
         # cross(off-axis)flapping stiffness [rad/sec2]
         DL_DA1 = 0.5*rho*self.MR['A']*self.MR['B']*self.MR['C']*self.MR['R']*self.MR['V_TIP']**2*self.MR['E']/6
+
+        ## MR Force Moments
+        v_adv_2 = uvw_air[0]**2+uvw_air[1]**2
+        wr = uvw_air[2] + (betas[0]-self.MR['IS'])*uvw_air[0] - betas[1]*uvw_air[1] # z-axis vel re rotor plane
+        wb = wr + 2/3*self.MR['V_TIP']*(coll+0.75*self.MR['TWST']) + \
+            v_adv_2/self.MR['V_TIP']*(coll+0.5*self.MR['TWST']) # z-axis vel re blade (equivalent)
+        
+        COEF = self.MR['V_TIP']*self.MR['R']*self.MR['A']*self.MR['B']*self.MR['C']
+        thrust_mr = (wb - vi_mr[0]) * rho*COEF/4
+        vi_mr_dot = np.zeros(1)
+        vi_mr_dot[0] = math.pi*3/4/self.MR['R']*(thrust_mr/(2*math.pi*rho*self.MR['R']**2) - vi_mr[0]*np.sqrt(v_adv_2+(wr-vi_mr[0])**2))
+
+        # MR induced flow power consumption
+        induced_power=thrust_mr*(vi_mr[0]-wr)
+        # MR profile drag power consumption
+        profile_power=0.5*rho*(self.MR['FR']/4)*self.MR['V_TIP']*(self.MR['V_TIP']**2+ \
+                     3.0*v_adv_2)
+        power_mr=induced_power+profile_power
+        torque_mr=power_mr/self.MR['OMEGA']
+
         # thrust coeff.
-        CT = self.HELI['WT']/(rho*math.pi*self.MR['R']**2*self.MR['V_TIP']**2)
+        CT = thrust_mr/(rho*math.pi*self.MR['R']**2*self.MR['V_TIP']**2)
+        CT = np.max([CT, 0])
         ## Dihedral effect on TPP
         # TPP dihedral effect(late.flap2side vel)
-        DB1DV = 2/self.MR['OMEGA']/self.MR['R']*(8*CT/self.MR['A_SIGMA']+(math.sqrt(CT/2)))
+        DB1DV = 2/self.MR['V_TIP']*(8*CT/self.MR['A_SIGMA']+(math.sqrt(CT/2)))
         DA1DU = -DB1DV; # TPP pitchup with speed   
 
-        wake_fn = 0.5 + 0.5*np.tanh(10*(np.abs(uvw_air[0])/self.HELI['VTRANS']-1.0))
         ### MR TPP Dynamics
+        wake_fn = 0.5 + 0.5*np.tanh(10*(np.abs(uvw_air[0])/self.HELI['VTRANS']-1.0))
         a_sum = betas[1]-lon+KC*betas[0]+DB1DV*uvw_air[1]*(1+wake_fn)
         b_sum = betas[0]+lat-KC*betas[1]+DA1DU*uvw_air[0]*(1+2*wake_fn)
         betas_dot = np.zeros(2)
         betas_dot[0] = -ITB*b_sum-ITB2_OM*a_sum-pqr[1]
         betas_dot[1] = -ITB*a_sum+ITB2_OM*b_sum-pqr[0]
-
-        ## MR Force Moments
-        wr = uvw_air[2] + (betas[0]-self.MR['IS'])*uvw_air[0] - betas[1]*uvw_air[1] # z-axis vel re rotor plane
-        wb = wr + 2/3*self.MR['OMEGA']*self.MR['R']*(coll+0.75*self.MR['TWST']) # z-axis vel re blade (equivalent)
-        
-        COEF = self.MR['OMEGA']*self.MR['A']*self.MR['B']*self.MR['C']
-        vi_mr = 10.0
-
-        for i in range(20):
-            thrust_mr = (wb - vi_mr) * rho*(self.MR['R']**2*COEF/4);
-            v_hat_2 = uvw_air[0]**2 + uvw_air[1]**2 + wr*(wr-2*vi_mr)
-            vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_mr/(2*math.pi*rho*self.MR['R']**2))**2 ) - v_hat_2/2
-            vi_mr = np.sqrt(np.abs(vi_2))#*np.sign(wb)
-
-        # MR induced flow power consumption
-        induced_power=thrust_mr*vi_mr
-        # MR profile drag power consumption
-        profile_power=0.5*rho*(self.MR['FR']/4)*self.MR['OMEGA']*self.MR['R']*(self.MR['OMEGA']**2*self.MR['R']**2+ \
-                     4.6*(uvw_air[0]**2+uvw_air[1]**2))
-        power_mr=induced_power+profile_power
-        torque_mr=power_mr/self.MR['OMEGA']
 
         ## Compute main rotor force and moment components
         X_MR=-thrust_mr*(betas[0]-self.MR['IS'])
@@ -185,24 +188,22 @@ class HelicopterDynamics(DynamicSystem):
 
         force_mr = np.array([X_MR,Y_MR,Z_MR])
         moment_mr = np.array([L_MR, M_MR, N_MR])
-        return force_mr, moment_mr, power_mr, vi_mr, betas_dot
+        return force_mr, moment_mr, power_mr, vi_mr_dot, betas_dot
 
-    def _calc_tr_fm(self, rho, pedal, uvw_air, pqr):
+    def _calc_tr_fm(self, rho, pedal, uvw_air, pqr, vi_tr):
         """Calculate Forces and Moments caused by Tail Rotor
         """
+        v_adv_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2
         vr = -(uvw_air[1] - pqr[2]*self.TR['D'] + pqr[0]*self.TR['H']) # vel re rotor plane
-        vb = vr + 2/3*self.TR['OMEGA']*self.TR['R']*(pedal+0.75*self.TR['TWST']) # vel re blade plane (equivalent)
+        vb = vr + 2/3*self.TR['V_TIP']*(pedal+0.75*self.TR['TWST']) + \
+            v_adv_2/self.TR['V_TIP']*(pedal+0.5*self.TR['TWST'])# vel re blade plane (equivalent)
         
-        COEF = self.TR['OMEGA']*self.TR['A']*self.TR['B']*self.TR['C']
-        vi_tr = 10.0
+        COEF = self.TR['V_TIP']*self.TR['R']*self.TR['A']*self.TR['B']*self.TR['C']
+        thrust_tr = (vb - vi_tr[0])*rho*COEF/4
+        vi_tr_dot = np.zeros(1)
+        vi_tr_dot[0] = math.pi*3/4/self.MR['R']*(thrust_tr/(2*math.pi*rho*self.TR['R']**2) - vi_tr[0]*np.sqrt(v_adv_2+(vr-vi_tr[0])**2))
 
-        for i in range(20):
-            thrust_tr = (vb - vi_tr)*rho*(self.TR['R']**2*COEF/4)
-            v_hat_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2 + vr*(vr-2*vi_tr)
-            vi_2 = np.sqrt( (v_hat_2/2)**2 + (thrust_tr/(2*math.pi*rho*self.TR['R']**2))**2 ) - v_hat_2/2
-            vi_tr = np.sqrt(np.abs(vi_2))#*np.sign(vb)
-
-        power_tr = thrust_tr*vi_tr
+        power_tr = thrust_tr*(vi_tr[0]-vr)
         # torque=power_tr/self.TR['OMEGA'];
         ## Compute tail rotor force and moment components
         Y_TR=thrust_tr
@@ -210,12 +211,12 @@ class HelicopterDynamics(DynamicSystem):
         N_TR=-Y_TR*self.TR['D']
         force_tr = np.array([0,Y_TR,0])
         moment_tr = np.array([L_TR, 0, N_TR])
-        return force_tr, moment_tr, power_tr, vi_tr
+        return force_tr, moment_tr, power_tr, vi_tr_dot
 
     def _calc_fus_fm(self, rho, uvw_air, vi_mr):
         """Calculate Forces and Moments caused by Fuselage
         """
-        wa_fus = uvw_air[2]-vi_mr; # Include rotor downwash on fuselage
+        wa_fus = uvw_air[2]-vi_mr[0] # Include rotor downwash on fuselage
         d_fw=(uvw_air[0]/(-wa_fus)*(self.MR['H']-self.FUS['H']))-(self.FUS['D']-self.MR['D']) # Pos of downwash on fuselage
         X_FUS = 0.5*rho*self.FUS['XUU']*np.abs(uvw_air[0])*uvw_air[0]
         Y_FUS = 0.5*rho*self.FUS['YVV']*np.abs(uvw_air[1])*uvw_air[1]
@@ -233,7 +234,7 @@ class HelicopterDynamics(DynamicSystem):
         """Calculate Forces and Moments caused by Horizontal Tail
         """
         # downwash impinges on tail?
-        d_dw=(uvw_air[0]/(vi_mr-uvw_air[2])*(self.MR['H']-self.HT['H'])) \
+        d_dw=(uvw_air[0]/(vi_mr[0]-uvw_air[2])*(self.MR['H']-self.HT['H'])) \
             - (self.HT['D']-self.MR['D']-self.MR['R'])
         
         if d_dw >0 and d_dw<self.MR['R']: #Triangular downwash
@@ -241,7 +242,7 @@ class HelicopterDynamics(DynamicSystem):
         else:
             eps_ht=0
         
-        wa_ht = uvw_air[2]-eps_ht*vi_mr+self.HT['D']*pqr[1] # local z-vel at h.t
+        wa_ht = uvw_air[2]-eps_ht*vi_mr[0]+self.HT['D']*pqr[1] # local z-vel at h.t
         vta_ht = np.sqrt(uvw_air[0]**2+uvw_air[1]**2+wa_ht**2) # 
         if np.abs(wa_ht) > 0.3*np.abs(uvw_air[0]): # surface stalled ?
             Z_HT=0.5*rho*self.HT['ZMAX']*np.abs(vta_ht)*wa_ht # circulation
@@ -256,7 +257,7 @@ class HelicopterDynamics(DynamicSystem):
     def _calc_vt_fm(self, rho, uvw_air, pqr, vi_tr):
         """Calculate Forces and Moments caused by Vertical Tail
         """
-        va_vt=uvw_air[1]+vi_tr-self.VT['D']*pqr[2]
+        va_vt=uvw_air[1]+vi_tr[0]-self.VT['D']*pqr[2]
         vta_vt=np.sqrt(uvw_air[0]**2+va_vt**2)
 
         if np.abs(va_vt) > 0.3*np.abs(uvw_air[0]):
@@ -274,7 +275,7 @@ class HelicopterDynamics(DynamicSystem):
         """Calculate Forces and Moments caused by Wing
         """
         ## Wing
-        wa_wn= uvw_air[2]-vi_mr # local z-vel at wing
+        wa_wn= uvw_air[2]-vi_mr[0] # local z-vel at wing
         vta_wn=np.sqrt(uvw_air[0]**2+wa_wn**2)
 
         if np.abs(wa_wn) > 0.3*np.abs(uvw_air[0]): # surface stalled ?
@@ -292,6 +293,8 @@ class HelicopterDynamics(DynamicSystem):
         #
         state_dots = self.state_dots
         #
+        vi_mr = state['vi_mr']
+        vi_tr = state['vi_tr']
         betas = state['betas']
         uvw = state['uvw']
         pqr = state['pqr']
@@ -331,8 +334,8 @@ class HelicopterDynamics(DynamicSystem):
         ### Atmosphere calculations
         temperature, rho = self._altitude_to_air_properties(altitude)
         ### Main Rotor
-        force_mr, moment_mr, power_mr, vi_mr, betas_dot = self._calc_mr_fm(rho, coll, lon, lat, betas, uvw_air, pqr)
-        force_tr, moment_tr, power_tr, vi_tr = self._calc_tr_fm(rho, pedal, uvw_air, pqr)
+        force_mr, moment_mr, power_mr, vi_mr_dot, betas_dot = self._calc_mr_fm(rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr)
+        force_tr, moment_tr, power_tr, vi_tr_dot = self._calc_tr_fm(rho, pedal, uvw_air, pqr, vi_tr)
         force_fus, moment_fus, power_fus = self._calc_fus_fm(rho, uvw_air, vi_mr)
         force_ht, moment_ht = self._calc_ht_fm(rho, uvw_air, pqr, vi_mr)
         force_vt, moment_vt = self._calc_vt_fm(rho, uvw_air, pqr, vi_tr)
@@ -360,6 +363,8 @@ class HelicopterDynamics(DynamicSystem):
         xyz_dot = ned_vel
 
         ### State derivatives
+        state_dots['vi_mr'] = vi_mr_dot
+        state_dots['vi_tr'] = vi_tr_dot
         state_dots['betas'] = betas_dot
         state_dots['uvw'] = uvw_dot
         state_dots['pqr'] = pqr_dot
