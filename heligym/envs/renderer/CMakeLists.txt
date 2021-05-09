@@ -74,7 +74,7 @@ find_package(STB REQUIRED)
 message(STATUS "Found STB in ${STB_INCLUDE_DIR}")
 
 # GLAD
-add_library(GLAD "${CMAKE_SOURCE_DIR}/src/glad.c")
+add_library(GLAD SHARED "${CMAKE_SOURCE_DIR}/src/glad.c")
 set_target_properties(GLAD
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/python"
@@ -92,8 +92,19 @@ set(IMGUI_PATH  "${CMAKE_CURRENT_SOURCE_DIR}/include/imgui")
     
 # Compile as static library 
 file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp) 
-add_library("imgui" STATIC ${IMGUI_SOURCES})
-target_include_directories("imgui" PUBLIC ${IMGUI_PATH})
+add_library(imgui SHARED ${IMGUI_SOURCES})
+target_include_directories(imgui PUBLIC ${IMGUI_PATH})
+
+set_target_properties(imgui
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/python"
+    ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/python"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/python"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/python"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/python"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/python"
+	EXECUTABLE_OUTPUT_PATH   "${CMAKE_CURRENT_SOURCE_DIR}/python"
+)
 
 # Add/Link resources 
 file(COPY ${data} DESTINATION resources)
@@ -105,7 +116,7 @@ if (WIN32)
 		set(LIBS gdi32)
 	endif()
 else()
-	set(LIBS glfw GLAD assimp )
+	set(LIBS glfw GLAD assimp imgui)
 #set(LIBS X11 Xrandr Xinerama Xxf86vm Xcursor GL dl pthread)
 endif()
 
@@ -119,6 +130,7 @@ include_directories(
 
 # Define the link libraries
 target_link_libraries(${PROJECT_NAME} ${LIBS})
+
 
 # Create virtual folders to make it look nicer in VS
 if(MSVC_IDE)

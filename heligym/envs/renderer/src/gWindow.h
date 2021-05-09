@@ -72,7 +72,7 @@ public:
     void processInput(GLFWwindow* window);
     void window_focus_callback(GLFWwindow* window, int focused);
 
-    void add_item_to_guiText(std::vector<guiText>* guiText, char* str, float* val);
+    void add_item_to_guiText(std::vector<guiText>* guiText, const char* str, float* val);
 
     static void static_framebuffer_size_callback(GLFWwindow* window, int width, int height);
     static void static_mouse_callback(GLFWwindow* window, double xpos, double ypos);

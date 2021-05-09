@@ -152,7 +152,7 @@ void MainWindow::renderGUI()
 
     ImVec2 info_pos = ImVec2(30.0f, 30.0f);
     ImGui::SetNextWindowPos(info_pos);
-    ImGui::SetNextWindowSize(ImVec2(250, 0));
+    //ImGui::SetNextWindowSize(ImVec2(250, 0));
     ImGui::Begin("Observations!");
 
     for (int i = 0; i < this->guiOBS.size(); i++)
@@ -280,9 +280,9 @@ void MainWindow::draw()
 }
 
 
-void MainWindow::add_item_to_guiText(std::vector<guiText>* _guiText, char* str, float* val)
+void MainWindow::add_item_to_guiText(std::vector<guiText>* _guiText, const char* str, float* val)
 {
-    guiText* temp = new guiText(str, val);
+    guiText* temp = new guiText((char*) str, val);
     _guiText->push_back(*temp);
     delete temp;
 }
