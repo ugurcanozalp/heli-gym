@@ -14,9 +14,9 @@ D2R         = 1/R2D
 
 class HelicopterDynamics(DynamicSystem):
 
-    _observations = ["TAS", "AOA", "SSLIP", "GROUND_SPD", "TRACK", "CLIMB_RATE", 
+    _observations = ["POWER", "TAS", "AOA", "SSLIP", "GROUND_SPD", "TRACK", "CLIMB_RATE", 
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
-        "ACC_LON", "LAT_ACC", "DWN_ACC", "XPOS", "YPOS", "ALTITUDE", "POWER"]
+        "ACC_LON", "LAT_ACC", "DWN_ACC", "XPOS", "YPOS", "ALTITUDE"]
     
     _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "a109.yaml")
     @classmethod
