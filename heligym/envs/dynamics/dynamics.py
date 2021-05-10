@@ -56,6 +56,17 @@ class State(OrderedDict):
                 value = value ** rhs
             return self
 
+    def __mod__(self, rhs):
+        if isinstance(rhs, State) and rhs.keys()==self.keys():
+            for value, rhs_value in zip(self.values(), rhs.values()):
+                value = value % rhs_value
+            return self
+        else:
+            for value in self.values():
+                value = value % rhs
+            return self
+
+
     def __radd__(self, lhs):
         for value in self.values():
             value = lhs + value

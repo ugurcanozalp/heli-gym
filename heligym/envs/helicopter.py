@@ -1,9 +1,6 @@
 """
 Helicopter control.
 """
-import yaml
-import pprint
-from typing import List
 import sys, math
 import numpy as np
 import os
@@ -15,12 +12,12 @@ from gym.utils import seeding, EzPickle
 from .dynamics import HelicopterDynamics
 from .renderer.render_api import Renderer
 
-FPS         = 50.0
+FPS         = 100.0
 DT          = 1/FPS
-FTS2KNOT    = 0.5924838; # ft/s to knots conversion
-EPS         = 1e-10; # small value for divison by zero
-R2D         = 180/math.pi; # Rad to deg
-D2R         = 1/R2D;
+FTS2KNOT    = 0.5924838 # ft/s to knots conversion
+EPS         = 1e-10 # small value for divison by zero
+R2D         = 180/math.pi # Rad to deg
+D2R         = 1/R2D
 FT2MTR      = 0.3048 # ft to meter
 
 class Heli(gym.Env, EzPickle):
@@ -32,7 +29,7 @@ class Heli(gym.Env, EzPickle):
     def __init__(self, yaml_path:str = None):
         EzPickle.__init__(self)
         yaml_path = self._default_yaml if yaml_path is None else yaml_path
-        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path)
+        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(0, +1, (4,), dtype=np.float32)
         self.max_time = 30 # seconds
@@ -129,7 +126,15 @@ class Heli(gym.Env, EzPickle):
         info = self._get_info()
         done = info['failed'] or info['successed'] or (self.time_counter > self.max_time)
         self.successed_time = self.successed_time + DT if info['successed_step'] else 0
+        self.step_end()
         return observations, reward, done, info
+
+    def step_end(self):
+        def pi_bound(x):
+            return (x + np.pi) % (2 * np.pi) - np.pi
+
+        self.heli_dyn.state['betas'] = pi_bound(self.heli_dyn.state['betas'])
+        self.heli_dyn.state['euler'] = pi_bound(self.heli_dyn.state['euler'])
 
     def reset(self):
         self.time_counter = 0
@@ -160,7 +165,7 @@ class Heli(gym.Env, EzPickle):
 class HeliHover(Heli):
     def __init__(self, yaml_path:str = None):
         Heli.__init__(self, yaml_path=yaml_path)
-        self.target_location = np.array([0,0,-self.heli_dyn.ENV['GR_ALT']-100])
+        self.target_location = np.array([0,0,-self.heli_dyn.ENV['GR_ALT']-200])
 
     def _is_successed_step(self):
         return np.linalg.norm(self.heli_dyn.state['xyz'] - self.target_location) < (2*self.heli_dyn.MR['R'])

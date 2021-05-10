@@ -18,14 +18,14 @@ HELI:
     IY          : 6761  # [slug-ft^2]
     IZ          : 6407  # [slug-ft^2]
     IXZ         : 598   # [slug-ft^2]
-    COL_OS      :  6.   # [deg] Collective Offset
-    COL_L       : -2.   # [deg] Collective Low 
-    COL_H       : 12.   # [deg] Collective High
+    COL_OS      : 6.    # [deg] Collective Offset
+    COL_L       : -2.    # [deg] Collective Low
+    COL_H       : 15.   # [deg] Collective High
     LON_L       : -10.  # [deg] Lon Cyc Low
     LON_H       : +16.  # [deg] Lon Cyc High
     LAT_L       : -10.  # [deg] Lat Cyc Low
     LAT_H       : +10.  # [deg] Lat Cyc High
-    PED_OS      :  15.  # [deg] Pedal Offset
+    PED_OS      : 15.   # [deg] Pedal Offset
     PED_L       : -15.  # [deg] Pedal Low
     PED_H       : 15.   # [deg] Pedal High
 

@@ -4,17 +4,18 @@ import numpy as np
 
 env = heligym.HeliHover()
 env.reset()
-
+action = env.heli_dyn.last_action
 for i in range(1000000):
     print(i)
 
-    _, _, done, _ = env.step(np.array([0.5, 0.5, 0.45, 0.5]))
+    _, _, done, info = env.step(action)
     #done = False
 
     env.render()
 
     if done:
-        #env.close()
+        print(info)
+        env.close()
         print('probleeem')
         break
 

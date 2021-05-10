@@ -1,18 +1,16 @@
 import yaml
-from typing import List
 import sys, math
 import numpy as np
 import os
+import copy
 
 from .kinematic import euler_to_rotmat, pqr_to_eulerdot_mat
 from .dynamics import DynamicSystem, State
 
-FPS         = 100.0
-DT          = 1/FPS
-FTS2KNOT    = 0.5924838; # ft/s to knots conversion
-EPS         = 1e-6; # small value for divison by zero
-R2D         = 180/math.pi; # Rad to deg
-D2R         = 1/R2D;
+FTS2KNOT    = 0.5924838 # ft/s to knots conversion
+EPS         = 1e-4 # small value for divison by zero
+R2D         = 180/math.pi # Rad to deg
+D2R         = 1/R2D
 
 class HelicopterDynamics(DynamicSystem):
 
@@ -22,31 +20,36 @@ class HelicopterDynamics(DynamicSystem):
     
     _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "a109.yaml")
     @classmethod
-    def init_yaml(cls, yaml_path: str = None):
-        yaml_path = self._default_yaml if yaml_path is None else yaml_path
+    def init_yaml(cls, yaml_path: str = None, dt=0.01):
+        yaml_path = cls._default_yaml if yaml_path is None else yaml_path
         with open(yaml_path) as foo:
             params = yaml.safe_load(foo)
 
-        return cls(params)
+        return cls(params, dt)
 
-    def __init__(self, params):
-        super(HelicopterDynamics, self).__init__(DT)
-        self.__dict__.update(params)
+    def __init__(self, params, dt):
+        super(HelicopterDynamics, self).__init__(dt)
+        self.HELI = params['HELI']
+        self.ENV = params['ENV']
         # Null state dots, since it is not updated.
-        self.reset()
         self.__precalculations()
         self.set_wind() # wind velocity in earth frame:
+        self.register_states()
 
-    def reset(self):
-        self.register_state('vi_mr', np.array([10.0]))
-        self.register_state('vi_tr', np.array([10.0]))
+    def register_states(self):
+        self.register_state('vi_mr', np.array([30.0]))
+        self.register_state('vi_tr', np.array([40.0]))
         self.register_state('betas', np.array([0.0, 0.0]))
         self.register_state('uvw', np.array([0.0, 0.0, 0.0]))
         self.register_state('pqr', np.array([0.0, 0.0, 0.0]))
         self.register_state('euler', np.array([0.0, 0.0, 0.0]))
         cg_from_bottom = -self._ground_touching_altitude()
-        self.register_state('xyz', np.array([0.0, 0.0, cg_from_bottom]))     
-        self.last_action = np.zeros(4)       
+        self.register_state('xyz', np.array([0.0, 0.0, cg_from_bottom-100]))
+        self.last_action = np.zeros(4)
+
+    def reset(self):
+        self.trim()
+        print("Helicopter is trimmed!")
 
     @property
     def MR(self):
@@ -168,7 +171,7 @@ class HelicopterDynamics(DynamicSystem):
         ## Dihedral effect on TPP
         # TPP dihedral effect(late.flap2side vel)
         DB1DV = 2/self.MR['V_TIP']*(8*CT/self.MR['A_SIGMA']+(math.sqrt(CT/2)))
-        DA1DU = -DB1DV; # TPP pitchup with speed   
+        DA1DU = -DB1DV # TPP pitchup with speed
 
         ### MR TPP Dynamics
         wake_fn = 0.5 + 0.5*np.tanh(10*(np.abs(uvw_air[0])/self.HELI['VTRANS']-1.0))
@@ -201,7 +204,7 @@ class HelicopterDynamics(DynamicSystem):
         COEF = self.TR['V_TIP']*self.TR['R']*self.TR['A']*self.TR['B']*self.TR['C']
         thrust_tr = (vb - vi_tr[0])*rho*COEF/4
         vi_tr_dot = np.zeros(1)
-        vi_tr_dot[0] = math.pi*3/4/self.MR['R']*(thrust_tr/(2*math.pi*rho*self.TR['R']**2) - vi_tr[0]*np.sqrt(v_adv_2+(vr-vi_tr[0])**2))
+        vi_tr_dot[0] = math.pi*3/4/self.TR['R']*(thrust_tr/(2*math.pi*rho*self.TR['R']**2) - vi_tr[0]*np.sqrt(v_adv_2+(vr-vi_tr[0])**2))
 
         power_tr = thrust_tr*(vi_tr[0]-vr)
         # torque=power_tr/self.TR['OMEGA'];
@@ -217,6 +220,7 @@ class HelicopterDynamics(DynamicSystem):
         """Calculate Forces and Moments caused by Fuselage
         """
         wa_fus = uvw_air[2]-vi_mr[0] # Include rotor downwash on fuselage
+        wa_fus += (wa_fus>0)*EPS # Make it nonzero!
         d_fw=(uvw_air[0]/(-wa_fus)*(self.MR['H']-self.FUS['H']))-(self.FUS['D']-self.MR['D']) # Pos of downwash on fuselage
         X_FUS = 0.5*rho*self.FUS['XUU']*np.abs(uvw_air[0])*uvw_air[0]
         Y_FUS = 0.5*rho*self.FUS['YVV']*np.abs(uvw_air[1])*uvw_air[1]
@@ -234,7 +238,8 @@ class HelicopterDynamics(DynamicSystem):
         """Calculate Forces and Moments caused by Horizontal Tail
         """
         # downwash impinges on tail?
-        d_dw=(uvw_air[0]/(vi_mr[0]-uvw_air[2])*(self.MR['H']-self.HT['H'])) \
+        v_dw = np.max([vi_mr[0]-uvw_air[2], EPS])
+        d_dw=(uvw_air[0]/v_dw*(self.MR['H']-self.HT['H'])) \
             - (self.HT['D']-self.MR['D']-self.MR['R'])
         
         if d_dw >0 and d_dw<self.MR['R']: #Triangular downwash
@@ -284,7 +289,7 @@ class HelicopterDynamics(DynamicSystem):
             Z_WN=0.5*rho*(self.WN['ZUU']*uvw_air[0]**2+self.WN['ZUW']*uvw_air[0]*wa_wn)
         
         X_WN=-0.5*rho/math.pi/vta_wn**2*(self.WN['ZUU']*uvw_air[0]**2+self.WN['ZUW']*uvw_air[0]*wa_wn)**2 # ? induced drag
-        power_wn=np.abs(X_WN*uvw_air[0]); # wing power
+        power_wn=np.abs(X_WN*uvw_air[0]) # wing power
         force_wn = np.array([X_WN,0,Z_WN])
         moment_wn = np.array([0, 0, 0])        
         return force_wn, moment_wn, power_wn
@@ -382,4 +387,45 @@ class HelicopterDynamics(DynamicSystem):
             )
 
         return state_dots, observartion
-       
+
+    def trim(self):
+        n_states = 10
+        x = np.array([0.05, 0.05, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5])
+        y = self.trim_fcn(x)
+        tol = y.transpose()@y
+        while tol>EPS**2:
+            dydx = []
+            for i in range(n_states):
+                dxi = np.zeros(n_states); dxi[i]+=EPS
+                dydxi = (self.trim_fcn(x+dxi)-self.trim_fcn(x-dxi))/(2*EPS)
+                dydx.append(dydxi)
+
+            dydx = np.stack(dydx, axis=-1)
+            x = x - 0.2*np.linalg.inv(dydx)@y
+            y = self.trim_fcn(x)
+            tol = y.transpose()@y
+
+        self.state['vi_mr'] = x[0:1]*self.MR['V_TIP']
+        self.state['vi_tr'] = x[1:2]*self.TR['V_TIP']
+        self.state['betas'] = x[2:4]
+        self.state['euler'][:-1] = x[4:6]
+        self.last_action = x[6:10]
+
+    def trim_fcn(self, x):
+        state = copy.deepcopy(self.state)
+        state['vi_mr'] = x[0:1]*self.MR['V_TIP']
+        state['vi_tr'] = x[1:2]*self.TR['V_TIP']
+        state['betas'] = x[2:4]
+        state['euler'][:-1] = x[4:6]
+        action = x[6:10]
+
+        state_dots, _ = self.dynamics(state, action)
+        y = np.concatenate([state_dots['vi_mr']/self.MR['V_TIP'],
+                            state_dots['vi_tr']/self.TR['V_TIP'],
+                            state_dots['betas'],
+                            state_dots['uvw'],
+                            state_dots['pqr']/self.MR['OMEGA']])
+
+        return y
+
+
