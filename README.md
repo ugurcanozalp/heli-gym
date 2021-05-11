@@ -15,27 +15,27 @@ In addition, inflow dynamics are added and model is adjusted so that it covers m
 ### Action Space
 | Num | Act                | Unit  | Min   | Max    |
 |-----|--------------------|-------|-------|--------|
-| 0   | Collective         | %     | 0.0   | 1.0    |
-| 1   | Lon. Cyclic        | %     | 0.0   | 1.0    |
-| 2   | Lat. Cyclic        | %     | 0.0   | 1.0    |
-| 3   | Pedal              | %     | 0.0   | 1.0    |
+| 0   | Collective         |       | -1    | 1      |
+| 1   | Lon. Cyclic        |       | -1    | 1      |
+| 2   | Lat. Cyclic        |       | -1    | 1      |
+| 3   | Pedal              |       | -1    | 1      |
 
 ### Observation Space
 | Num | Obs                | Unit  | Min   | Max    |
 |-----|--------------------|-------|-------|--------|
-| 0   | power              | hp    | 0.0   | ∞      |
-| 1   | air speed          | ft/s  | 0.0   | ∞      |  
-| 2   | angle of attack    | rad   | -π    | π      |
-| 3   | sideslip angle     | rad   | -π    | π      |
-| 4   | ground speed       | ft/s  | 0.0   | ∞      |  
-| 5   | track angle        | rad   | -π    | π      |
+| 0   | power              | hp    | 0     | ∞      |
+| 1   | air speed          | ft/s  | 0     | ∞      |  
+| 2   | angle of attack    | deg   | -180  | 180    |
+| 3   | sideslip angle     | deg   | -180  | 180    |
+| 4   | ground speed       | ft/s  | 0     | ∞      |  
+| 5   | track angle        | deg   | -180  | 180    |
 | 6   | climb rate         | ft/s  | -∞    | ∞      |  
-| 7   | roll angle         | rad   | -π    | π      |
-| 8   | pitch angle        | rad   | -π    | π      |
-| 9   | yaw angle          | rad   | -π    | π      |
-| 10  | roll rate          | rad/s | -∞    | ∞      |  
-| 11  | pitch rate         | rad/s | -∞    | ∞      |  
-| 12  | yaw rate           | rad/s | -∞    | ∞      |  
+| 7   | roll angle         | deg   | -180  | 180    |
+| 8   | pitch angle        | deg   | -180  | 180    |
+| 9   | yaw angle          | deg   | -180  | 180    |
+| 10  | roll rate          | deg/s | -∞    | ∞      |  
+| 11  | pitch rate         | deg/s | -∞    | ∞      |  
+| 12  | yaw rate           | deg/s | -∞    | ∞      |  
 | 13  | x acc (body)       | ft/s^2| -∞    | ∞      |  
 | 14  | y acc (body)       | ft/s^2| -∞    | ∞      |  
 | 15  | z acc (body)       | ft/s^2| -∞    | ∞      |  

@@ -108,6 +108,16 @@ class DynamicSystem(object):
         self.state += (k1 + k2*2 + k3*2 + k4)*(1/6 * self.dt)
         self.state_dots = k4
         self.last_action = action
+        # Solve system by Implicit Trapezoidal Rule a singel step.
+        #a = self.dynamics(self.state, action)
+        #next_state = a*self.dt
+        #for i in range(20):
+        #    b = self.dynamics(next_state, action)
+        #    next_state = self.state + (a + b)*(0.5*self.dt)
+        #
+        #self.state = next_state
+        #self.state_dots = b
+        #self.last_action = action
 
     def get_observation(self):
         return self.observation

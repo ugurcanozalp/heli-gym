@@ -14,6 +14,7 @@ for i in range(1000000):
 
     _, _, done, info = env.step(action)
     #done = False
+    #print(env.heli_dyn.state)
 
     env.render()
 

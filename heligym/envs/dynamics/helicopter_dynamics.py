@@ -314,10 +314,15 @@ class HelicopterDynamics(DynamicSystem):
         xyz = state['xyz']
 
         ### Control input calculations 
-        coll = D2R*( self.HELI['COL_OS'] + action[0]*(self.HELI['COL_H'] - self.HELI['COL_L']) + self.HELI['COL_L'] )
-        lon = D2R*( action[1]*(self.HELI['LON_H'] - self.HELI['LON_L']) + self.HELI['LON_L'] )
-        lat = D2R*( action[2]*(self.HELI['LAT_H'] - self.HELI['LAT_L']) + self.HELI['LAT_L'] )
-        pedal = D2R*( self.HELI['PED_OS'] + action[3]*(self.HELI['PED_H'] - self.HELI['PED_L']) + self.HELI['PED_L'] )
+        coll = D2R*( self.HELI['COL_OS'] + 
+            0.5*action[0]*(self.HELI['COL_H'] - self.HELI['COL_L']) + 
+            0.5*(self.HELI['COL_H'] + self.HELI['COL_L']) )
+        lon = D2R*( 0.5*action[1]*(self.HELI['LON_H'] - self.HELI['LON_L']) + 
+            0.5*(self.HELI['LON_H'] + self.HELI['LON_L']) )
+        lat = D2R*( 0.5*action[2]*(self.HELI['LAT_H'] - self.HELI['LAT_L']) + 
+            0.5*(self.HELI['LAT_H'] + self.HELI['LAT_L']) )
+        pedal = D2R*( self.HELI['PED_OS'] + 0.5*action[3]*(self.HELI['PED_H'] - self.HELI['PED_L']) + 
+            0.5*(self.HELI['PED_H'] + self.HELI['PED_L']) )
 
         ###  Kinematic calculations
         earth2body = euler_to_rotmat(euler) # Earth to Body DCM matrix
@@ -380,16 +385,16 @@ class HelicopterDynamics(DynamicSystem):
             ### Observation calculations
             power_total_hp = power_total/550 # [hp] Power consumption in Horse Power
             tas = np.linalg.norm(uvw_air) # true air speed in ft/s
-            sideslip_deg = np.arcsin(uvw_air[1]/(tas+EPS))# [rad] Sideslip angle
-            aoa_deg = np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [rad] % Angle of Attack
+            sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [rad] Sideslip angle
+            aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [rad] % Angle of Attack
             ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
-            track_angle_deg = np.arctan2(ned_vel[1],ned_vel[0]) # [rad] Track angle
+            track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [rad] Track angle
             #
             self.observation = np.array([power_total_hp, \
                 tas, aoa_deg, sideslip_deg, \
                 ground_speed, track_angle_deg, climb_rate, \
-                euler[0], euler[1], euler[2], \
-                pqr[0], pqr[1], pqr[2],
+                R2D*euler[0], R2D*euler[1], R2D*euler[2], \
+                R2D*pqr[0], R2D*pqr[1], R2D*pqr[2],
                 body_acc[0], body_acc[1], body_acc[2], \
                 xyz[0], xyz[1], altitude],
                 )
