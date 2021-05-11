@@ -14,8 +14,15 @@ if sys.platform == 'win32':
 
 elif sys.platform == 'linux':
     if 'LD_LIBRARY_PATH' not in os.environ:
-        os.environ['LD_LIBRARY_PATH']  = os.pathsep + os.environ['HELIGYM_LIBS_DIR']
+        os.environ['LD_LIBRARY_PATH']  = ""
+    
+    if os.environ['HELIGYM_LIBS_DIR'] not in os.environ["LD_LIBRARY_PATH"]:
+        os.environ['LD_LIBRARY_PATH'] += os.pathsep + os.environ['HELIGYM_LIBS_DIR']
+    
+    if os.environ['HELIGYM_PYTHON_DIR'] not in os.environ["LD_LIBRARY_PATH"]:
         os.environ['LD_LIBRARY_PATH'] += os.pathsep + os.environ['HELIGYM_PYTHON_DIR']
+    
+    if os.environ['HELIGYM_MODEL_DIR'] not in os.environ["LD_LIBRARY_PATH"]:
         os.environ['LD_LIBRARY_PATH'] += os.pathsep + os.environ['HELIGYM_MODEL_DIR']
         try:
             os.execv(sys.executable, [sys.executable] + sys.argv)
