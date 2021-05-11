@@ -4,7 +4,11 @@ import numpy as np
 
 env = heligym.HeliHover()
 env.reset()
-action = env.heli_dyn.last_action
+action = env.heli_dyn.last_action + np.array([0.02, 0,0,0.04])
+#print(env.heli_dyn.state)
+print(action)
+env.set_maxtime(600)
+
 for i in range(1000000):
     #print(i)
 
@@ -14,9 +18,9 @@ for i in range(1000000):
     env.render()
 
     if done:
-        #print(info)
+        print(info)
         env.close()
-        #print('probleeem')
+        print('probleeem')
         break
 
 #print("hello world!")

@@ -54,6 +54,9 @@ class Heli(gym.Env, EzPickle):
         self.__create_guiINFO_text()
         self.__add_to_guiText()
 
+    def set_maxtime(self, max_time):
+        self.max_time = max_time
+
     def __create_guiINFO_text(self):
         self.guiINFO_text.append( bytes( "POWER      : %5.2f hp" , 'utf-8'))
         self.guiINFO_text.append( bytes( "TAS        : %5.2f ft/s", 'utf-8'))

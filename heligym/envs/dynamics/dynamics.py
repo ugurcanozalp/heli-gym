@@ -1,91 +1,76 @@
 import numpy as np
 from collections import OrderedDict
-from typing import Any
+from copy import copy, deepcopy
 
 class State(OrderedDict):
     def __init__(self, *args, **kwargs):
         super(State, self).__init__(*args, **kwargs)
 
     def __add__(self, rhs):
-        if isinstance(rhs, State) and rhs.keys()==self.keys():
-            for value, rhs_value in zip(self.values(), rhs.values()):
+        selfcopy = deepcopy(self)
+        if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
+            for value, rhs_value in zip(selfcopy.values(), rhs.values()):
                 value += rhs_value
-            return self
+            return selfcopy
         else:
-            for value in self.values():
+            for value in selfcopy.values():
                 value += rhs
-            return self
+            return selfcopy
 
     def __mul__(self, rhs):
-        if isinstance(rhs, State) and rhs.keys()==self.keys():
-            for value, rhs_value in zip(self.values(), rhs.values()):
+        selfcopy = deepcopy(self)
+        if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
+            for value, rhs_value in zip(selfcopy.values(), rhs.values()):
                 value *= rhs_value
-            return self
+            return selfcopy
         else:
-            for value in self.values():
+            for value in selfcopy.values():
                 value *= rhs
-            return self
+            return selfcopy
 
     def __sub__(self, rhs):
-        if isinstance(rhs, State) and rhs.keys()==self.keys():
-            for value, rhs_value in zip(self.values(), rhs.values()):
+        selfcopy = deepcopy(self)
+        if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
+            for value, rhs_value in zip(selfcopy.values(), rhs.values()):
                 value -= rhs_value
-            return self
+            return selfcopy
         else:
-            for value in self.values():
+            for value in selfcopy.values():
                 value -= rhs
-            return self
+            return selfcopy
 
     def __div__(self, rhs):
-        if isinstance(rhs, State) and rhs.keys()==self.keys():
-            for value, rhs_value in zip(self.values(), rhs.values()):
+        selfcopy = deepcopy(self)
+        if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
+            for value, rhs_value in zip(selfcopy.values(), rhs.values()):
                 value -= rhs_value
-            return self
+            return selfcopy
         else:
-            for value in self.values():
+            for value in selfcopy.values():
                 value -= rhs
-            return self
+            return selfcopy
 
     def __pow__(self, rhs):
-        if isinstance(rhs, State) and rhs.keys()==self.keys():
-            for value, rhs_value in zip(self.values(), rhs.values()):
+        selfcopy = deepcopy(self)
+        if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
+            for value, rhs_value in zip(selfcopy.values(), rhs.values()):
                 value = value ** rhs_value
-            return self
+            return selfcopy
         else:
-            for value in self.values():
+            for value in selfcopy.values():
                 value = value ** rhs
-            return self
+            return selfcopy
 
     def __mod__(self, rhs):
-        if isinstance(rhs, State) and rhs.keys()==self.keys():
-            for value, rhs_value in zip(self.values(), rhs.values()):
+        selfcopy = deepcopy(self)
+        if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
+            for value, rhs_value in zip(selfcopy.values(), rhs.values()):
                 value = value % rhs_value
-            return self
+            return selfcopy
         else:
-            for value in self.values():
+            for value in selfcopy.values():
                 value = value % rhs
-            return self
-
-
-    def __radd__(self, lhs):
-        for value in self.values():
-            value = lhs + value
-        return self
-
-    def __rmul__(self, lhs):
-        for value in self.values():
-            value = lhs * value
-        return self
-
-    def __rsub__(self, lhs):
-        for value in self.values():
-            value = lhs - value
-        return self
-
-    def __rdiv__(self, lhs):
-        for value in self.values():
-            value = lhs / value
-        return self
+            return selfcopy
 
 class DynamicSystem(object):
     def __init__(self, dt: float = 0.01):
@@ -116,11 +101,11 @@ class DynamicSystem(object):
     def step(self, action):
         # Solve system by RK4 a single step.
         k1, _ = self.dynamics(self.state, action)
-        k2, _ = self.dynamics(self.state + 1/2 * k1 * self.dt, action)
-        k3, _ = self.dynamics(self.state + 1/2 * k2 * self.dt, action)
+        k2, _ = self.dynamics(self.state + k1 * (0.5*self.dt), action)
+        k3, _ = self.dynamics(self.state + k2 * (0.5*self.dt), action)
         k4, _ = self.dynamics(self.state + k3 * self.dt, action)
-        self.state = self.state + 1/6 * (k1 + 2*k2 + 2*k3 + k4)*self.dt
-        self.state_dots, _ = self.dynamics(self.state, action)
+        self.state += (k1 + k2*2 + k3*2 + k4)*(1/6 * self.dt)
+        self.state_dots = k4
         self.last_action = action
 
     def get_observation(self):
@@ -133,4 +118,4 @@ class DynamicSystem(object):
 if __name__=='__main__':
     mystate = State([("uvw", np.zeros(3)), ("pqr", np.zeros(3)), ("xyz", np.zeros(3))])
     mydict = OrderedDict([("uvw", np.zeros(3)), ("pqr", np.zeros(3)), ("xyz", np.zeros(3))])
-    print(mystates*0.01+1.3)
+    print(mystate*0.01+1.3)

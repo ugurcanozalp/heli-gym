@@ -205,6 +205,7 @@ class HelicopterDynamics(DynamicSystem):
         thrust_tr = (vb - vi_tr[0])*rho*COEF/4
         vi_tr_dot = np.zeros(1)
         vi_tr_dot[0] = math.pi*3/4/self.TR['R']*(thrust_tr/(2*math.pi*rho*self.TR['R']**2) - vi_tr[0]*np.sqrt(v_adv_2+(vr-vi_tr[0])**2))
+        vi_tr_dot[0] *= 0.5 # slow down inflow dynamics due to numerical unstability.
 
         power_tr = thrust_tr*(vi_tr[0]-vr)
         # torque=power_tr/self.TR['OMEGA'];
