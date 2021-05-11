@@ -120,8 +120,8 @@ if (WIN32)
 		set(LIBS gdi32)
 	endif()
 else()
-	set(LIBS glfw GLAD assimp imgui)
-#set(LIBS X11 Xrandr Xinerama Xxf86vm Xcursor GL dl pthread)
+	set(LIBS glfw GL GLAD assimp imgui)
+	#set(LIBS X11 Xrandr Xinerama Xxf86vm Xcursor GL dl pthread)
 endif()
 
 
