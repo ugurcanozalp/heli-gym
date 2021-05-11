@@ -91,9 +91,9 @@ class Heli(gym.Env, EzPickle):
                                     )
 
         self.renderer.rotate_model(self.heli_render_obj, 
-                                    self.heli_dyn.state['euler'][0] * R2D,
-                                    self.heli_dyn.state['euler'][1] * R2D,
-                                    self.heli_dyn.state['euler'][2] * R2D
+                                    self.heli_dyn.state['euler'][0],
+                                    self.heli_dyn.state['euler'][1],
+                                    self.heli_dyn.state['euler'][2]
                                     )
 
         self.renderer.set_camera_pos(self.heli_dyn.state['xyz'][0] * FT2MTR,
@@ -108,6 +108,7 @@ class Heli(gym.Env, EzPickle):
 
         if not self.renderer.is_visible():
             self.renderer.show_window()
+            
         self.renderer.render()
         
 

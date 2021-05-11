@@ -1,5 +1,6 @@
 #include "gWindow.h"
 
+
 MainWindow::MainWindow(const unsigned int SCR_WIDTH,
                         const unsigned int SCR_HEIGHT,
                         const char* title)
@@ -11,6 +12,8 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    //glfwSwapInterval(0);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
 
 
     #ifdef __APPLE__
@@ -86,15 +89,6 @@ void MainWindow::render()
 {
     if (!glfwWindowShouldClose(this->window))
     {
-        // per-frame time logic
-    // --------------------
-        float currentFrame = glfwGetTime();
-        this->deltaTime = currentFrame - this->lastFrame;
-
-        // input
-        // -----
-        processInput(this->window);
-
         // render
         // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -102,37 +96,52 @@ void MainWindow::render()
 
         // activate shader
         this->ourShader->use();
-
        
         // pass projection matrix to shader (note that in this case it could change every frame)
         glm::mat4 projection = glm::perspective(glm::radians(this->camera->Zoom), (float)this->SCR_WIDTH / (float)this->SCR_HEIGHT, 0.1f, 2000.0f);
-        //this->ourShader->setMat4("projection", projection);
 
         // camera/view transformation
         glm::mat4 view = this->camera->GetViewMatrix();
         glm::mat4 p_v = projection * view;
-        this->ourShader->setMat4("projection_view", p_v);
-
-        this->renderGUI();
-
-        // draw
-        this->draw();
+        this->ourShader->setMat4("projection_view", p_v);    
         
-        if (this->deltaTime >= 1.0/this->FPS_limit)
+        // draw objects
+        this->draw();     
+    
+        // render gui
+        this->renderGUI();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        //glfwSwapBuffers(this->window);
+        glFlush();
+        glfwPollEvents();        
+
+        // per-frame time logic
+        // --------------------
+        this->deltaTime = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - this->lastFrame);
+
+        
+        //if (this->deltaTime >= 1.0/this->FPS_limit)
+        auto diff =  (this->dt - this->deltaTime);
+        //std::cout << " DIF " << diff.count() << std::endl;
+        if (diff.count() > 0)
         {
-            // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-            // -------------------------------------------------------------------------------
-            this->FPS = 1.0 / (this->deltaTime + 1e-7);
-                     
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            auto t1 = std::chrono::steady_clock::now();
+            //std::this_thread::sleep_for(diff); 
+            this->preciseSleep(diff.count()/1e9);
+            auto t2 = std::chrono::steady_clock::now();
+            auto int_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1);
+            //std::cout << "WAIT " << " " << int_ms.count() << std::endl;
+        } 
 
-            glfwSwapBuffers(this->window);
-            glfwPollEvents();
-            this->lastFrame = currentFrame;
-        }
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
+        auto dt1 =  std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - this->lastFrame);
+        this->FPS = 1.0f / (dt1.count() / 1e9);
+        //std::cout << "FPS " << this->FPS << " DT " <<  (dt1.count() / 1e9) << std::endl;
 
+        this->lastFrame = std::chrono::steady_clock::now();
 
-        this->updateTime = currentFrame;
     }
     else
     {
@@ -143,6 +152,34 @@ void MainWindow::render()
 }
 
 
+void MainWindow::preciseSleep(double seconds) {
+
+    static double estimate = 5e-3;
+    static double mean = 5e-3;
+    static double m2 = 0;
+    static int64_t count = 1;
+
+    while (seconds > estimate) {
+        auto start = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        auto end = std::chrono::steady_clock::now();
+
+        double observed = (end - start).count() / 1e9;
+        seconds -= observed;
+
+        ++count;
+        double delta = observed - mean;
+        mean += delta / count;
+        m2   += delta * (observed - mean);
+        double stddev = sqrt(m2 / (count - 1));
+        estimate = mean + stddev;
+    }
+
+    // spin lock
+    auto start = std::chrono::steady_clock::now();
+    while ((std::chrono::steady_clock::now() - start).count() / 1e9 < seconds);
+}
+
 void MainWindow::renderGUI()
 {
     // Start the Dear ImGui frame
@@ -152,7 +189,7 @@ void MainWindow::renderGUI()
 
     ImVec2 info_pos = ImVec2(30.0f, 30.0f);
     ImGui::SetNextWindowPos(info_pos);
-    //ImGui::SetNextWindowSize(ImVec2(250, 0));
+    ImGui::SetNextWindowSize(ImVec2(250, 0));
     ImGui::Begin("Observations!");
 
     for (int i = 0; i < this->guiOBS.size(); i++)
@@ -189,16 +226,16 @@ void MainWindow::mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     if (firstMouse)
     {
-        lastX = xpos;
-        lastY = ypos;
+        lastX = (float)xpos;
+        lastY = (float)ypos;
         firstMouse = false;
     }
 
-    this->xoffset = xpos - lastX;
-    this->yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    this->xoffset = (float)xpos - lastX;
+    this->yoffset = lastY - (float)ypos; // reversed since y-coordinates go from bottom to top
 
-    lastX = xpos;
-    lastY = ypos;
+    lastX = (float)xpos;
+    lastY = (float)ypos;
 
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
@@ -213,7 +250,7 @@ void MainWindow::mouse_callback(GLFWwindow* window, double xpos, double ypos)
 // ----------------------------------------------------------------------
 void MainWindow::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    this->camera->ProcessMouseScroll(yoffset);
+    this->camera->ProcessMouseScroll((float)yoffset);
 }
 
 // glfw : window focus

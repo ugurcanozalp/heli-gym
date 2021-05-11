@@ -72,6 +72,8 @@ float get_fps(MainWindow* window)
 void set_fps(MainWindow* window, float fps)
 {
 	window->FPS_limit = fps;
+	std::chrono::nanoseconds dt{static_cast<long int>( 1000000000.0f/window->FPS_limit)};
+	window->dt = dt;
 }
 
 Camera* get_camera(MainWindow* window)

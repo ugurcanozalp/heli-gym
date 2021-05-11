@@ -51,9 +51,9 @@ class Renderer(object):
         # product of the axes. On the other hand, in OpenGL (or Computer Graphics)
         # Z-axis is Y-axis is altered. 
 
-        api.rotate_model(model, -psi   / 180 * np.pi, 0, 1, 0)
-        api.rotate_model(model,  theta / 180 * np.pi, 0, 0, 1)
-        api.rotate_model(model,  phi   / 180 * np.pi, 1, 0, 0)
+        api.rotate_model(model, -psi   , 0, 1, 0)
+        api.rotate_model(model,  theta , 0, 0, 1)
+        api.rotate_model(model,  phi   , 1, 0, 0)
 
     def scale_model(self, model, x, y, z):
         # Because of the vector direction notation difference 

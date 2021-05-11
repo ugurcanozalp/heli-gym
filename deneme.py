@@ -6,7 +6,7 @@ env = heligym.HeliHover()
 env.reset()
 action = env.heli_dyn.last_action
 for i in range(1000000):
-    print(i)
+    #print(i)
 
     _, _, done, info = env.step(action)
     #done = False
@@ -14,9 +14,9 @@ for i in range(1000000):
     env.render()
 
     if done:
-        print(info)
+        #print(info)
         env.close()
-        print('probleeem')
+        #print('probleeem')
         break
 
-print("hello world!")
+#print("hello world!")

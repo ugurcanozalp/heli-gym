@@ -12,6 +12,9 @@
 
 #include <iostream>
 
+#include <chrono>
+#include <thread>
+
 struct guiText
 {
     char* str;
@@ -25,8 +28,8 @@ class MainWindow
 private:
     unsigned int SCR_WIDTH;
     unsigned int SCR_HEIGHT;
-    float deltaTime = 0.0f;
-    float lastFrame = 0.0f;
+    std::chrono::duration<long, std::nano> deltaTime;
+    std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
     float updateTime = 0.0f;
     float lastX = 0.0f;
     float xoffset = 0.0f;
@@ -39,13 +42,16 @@ private:
 	std::vector<Model*> instantaneous_drawables;
     void draw();
 
+    void preciseSleep(double seconds);
+
 public:
     GLFWwindow* window;
     Shader* ourShader;
     Camera* camera;
 
-    float FPS = 1e-7;
-    float FPS_limit = 50.0; 
+    float FPS = (float)1e-7;
+    float FPS_limit = 100.0; 
+    std::chrono::nanoseconds dt{static_cast<long int>( 1000000000.0f/this->FPS_limit)};
 
     std::vector<guiText> guiOBS;
 
