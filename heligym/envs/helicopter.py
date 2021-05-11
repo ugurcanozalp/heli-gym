@@ -47,17 +47,12 @@ class Heli(gym.Env, EzPickle):
 
         self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
         self.renderer.add_permanent_object_to_window(self.sky)
-
-        self.guiINFO_text = []
-        self.guiINFO_val = self.heli_dyn.get_observation()
-
-        self.__create_guiINFO_text()
-        self.__add_to_guiText()
-
+       
     def set_maxtime(self, max_time):
         self.max_time = max_time
 
     def __create_guiINFO_text(self):
+        self.guiINFO_text = []
         self.guiINFO_text.append( bytes( "POWER      : %5.2f hp" , 'utf-8'))
         self.guiINFO_text.append( bytes( "TAS        : %5.2f ft/s", 'utf-8'))
         self.guiINFO_text.append( bytes( "AOA        : %5.2f °", 'utf-8'))
@@ -79,13 +74,10 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append( bytes( "Z_LOC      : %5.2f ft", 'utf-8'))
 
     def __add_to_guiText(self):
-        self.renderer.add_guiOBS(self.guiINFO_text, self.guiINFO_val)
-
-
+        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn.get_observation())
 
     def render(self):
-        self.guiINFO_val = self.heli_dyn.get_observation()
-        self.renderer.set_guiOBS(self.guiINFO_text, self.guiINFO_val)
+        self.renderer.set_guiOBS(self.guiINFO_text, self.heli_dyn.get_observation())
         
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
@@ -125,13 +117,13 @@ class Heli(gym.Env, EzPickle):
     def step(self, actions):
         self.time_counter += DT
         self.heli_dyn.step(actions)
-        observations = self.heli_dyn.get_observation()
+        observation = self.heli_dyn.get_observation()
         reward = self._calculate_reward()
         info = self._get_info()
         done = info['failed'] or info['successed'] or (self.time_counter > self.max_time)
         self.successed_time = self.successed_time + DT if info['successed_step'] else 0
         self.step_end()
-        return observations, reward, done, info
+        return observation, reward, done, info
 
     def step_end(self):
         def pi_bound(x):
@@ -143,6 +135,8 @@ class Heli(gym.Env, EzPickle):
     def reset(self):
         self.time_counter = 0
         self.heli_dyn.reset()
+        self.__create_guiINFO_text()
+        self.__add_to_guiText()
         return self.heli_dyn.get_observation()      
 
     def _get_info(self):

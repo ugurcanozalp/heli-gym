@@ -98,11 +98,20 @@ class HelicopterDynamics(DynamicSystem):
         self.MR['FR'] = self.MR['CD0']*self.MR['R']*self.MR['B']*self.MR['C'] # eff.frontal area MR
         self.MR['SOL'] = self.MR['B']*self.MR['C']/(self.MR['R']*math.pi) # MR solidity (SIGMA)
         self.MR['A_SIGMA'] = self.MR['A']*self.MR['SOL'] # product(lift-curve-slope & solidity)
+        self.MR['GAM_OM16_DRO'] = self.MR['A']*self.MR['C']*self.MR['R']**4/self.MR['IB']* \
+            self.MR['OMEGA']/16*(1+8/3*self.MR['E']/self.MR['R']) # one sixth the product(lock# and rotor ang.rate), divided by air density
+        # primary(direct)flapping stiffness [rad/sec2]
+        self.MR['DL_DB1'] = self.MR['B']/2* \
+            (1.5*self.MR['IB']*self.MR['E']/self.MR['R']*self.MR['OMEGA']**2)
+        # cross(off-axis)flapping stiffness [rad/sec2], divided by air density
+        self.MR['DL_DA1_DRO'] = 0.5*self.MR['A']*self.MR['B']*self.MR['C']*self.MR['R']*self.MR['V_TIP']**2*self.MR['E']/6
+        self.MR['COEF_TH'] = self.MR['V_TIP']*self.MR['R']*self.MR['A']*self.MR['B']*self.MR['C'] # coefficient for thrust calculation
         # Tail Rotor precalculations
         self.TR['OMEGA'] = self.TR['RPM']*2*math.pi/60 # [rad/s] TR rev speed
         self.TR['FR'] = self.TR['CD0']*self.TR['R']*self.TR['B']*self.TR['C'] # eff.frontal area TR
         self.TR['V_TIP'] = self.TR['R']*self.TR['OMEGA'] # [ft/s] TR tip speed
         self.TR['SOL'] = self.TR['B']*self.TR['C']/(self.TR['R']*math.pi) # TR solidity (SIGMA)
+        self.TR['COEF_TH'] = self.TR['V_TIP']*self.TR['R']*self.TR['A']*self.TR['B']*self.TR['C'] # coefficient for thrust calculation
         # Inertia
         #print(self.HELI['IX'])
         self.HELI['I'] = np.array([ [self.HELI['IX']     ,   0.0                 ,   -self.HELI['IXZ']], 
@@ -132,8 +141,7 @@ class HelicopterDynamics(DynamicSystem):
         """
         ### Calculate required parameters first. 
         # one sixth the product(lock# and rotor ang.rate)
-        GAM_OM16 = rho*self.MR['A']*self.MR['C']*self.MR['R']**4/self.MR['IB']* \
-            self.MR['OMEGA']/16*(1+8/3*self.MR['E']/self.MR['R'])
+        GAM_OM16 = rho*self.MR['GAM_OM16_DRO']
         # flapping aero cpl(flapping coupling factor)    
         KC = (0.75*self.MR['OMEGA']*self.MR['E']/self.MR['R']/GAM_OM16)+self.MR['K1']
         # flapping x-cpl coef
@@ -141,10 +149,9 @@ class HelicopterDynamics(DynamicSystem):
         # flapping primary resp(inverse TPP lag) [rad/s]
         ITB = ITB2_OM*self.MR['OMEGA']/GAM_OM16
         # primary(direct)flapping stiffness [rad/sec2]
-        DL_DB1 = self.MR['B']/2* \
-            (1.5*self.MR['IB']*self.MR['E']/self.MR['R']*self.MR['OMEGA']**2)
+        DL_DB1 = self.MR['DL_DB1']
         # cross(off-axis)flapping stiffness [rad/sec2]
-        DL_DA1 = 0.5*rho*self.MR['A']*self.MR['B']*self.MR['C']*self.MR['R']*self.MR['V_TIP']**2*self.MR['E']/6
+        DL_DA1 = rho*self.MR['DL_DA1_DRO']
 
         ## MR Force Moments
         v_adv_2 = uvw_air[0]**2+uvw_air[1]**2
@@ -152,8 +159,8 @@ class HelicopterDynamics(DynamicSystem):
         wb = wr + 2/3*self.MR['V_TIP']*(coll+0.75*self.MR['TWST']) + \
             v_adv_2/self.MR['V_TIP']*(coll+0.5*self.MR['TWST']) # z-axis vel re blade (equivalent)
         
-        COEF = self.MR['V_TIP']*self.MR['R']*self.MR['A']*self.MR['B']*self.MR['C']
-        thrust_mr = (wb - vi_mr[0]) * rho*COEF/4
+        
+        thrust_mr = (wb - vi_mr[0]) * rho*self.MR['COEF_TH']/4
         vi_mr_dot = np.zeros(1)
         vi_mr_dot[0] = math.pi*3/4/self.MR['R']*(thrust_mr/(2*math.pi*rho*self.MR['R']**2) - vi_mr[0]*np.sqrt(v_adv_2+(wr-vi_mr[0])**2))
 
@@ -201,8 +208,7 @@ class HelicopterDynamics(DynamicSystem):
         vb = vr + 2/3*self.TR['V_TIP']*(pedal+0.75*self.TR['TWST']) + \
             v_adv_2/self.TR['V_TIP']*(pedal+0.5*self.TR['TWST'])# vel re blade plane (equivalent)
         
-        COEF = self.TR['V_TIP']*self.TR['R']*self.TR['A']*self.TR['B']*self.TR['C']
-        thrust_tr = (vb - vi_tr[0])*rho*COEF/4
+        thrust_tr = (vb - vi_tr[0])*rho*self.TR['COEF_TH']/4
         vi_tr_dot = np.zeros(1)
         vi_tr_dot[0] = math.pi*3/4/self.TR['R']*(thrust_tr/(2*math.pi*rho*self.TR['R']**2) - vi_tr[0]*np.sqrt(v_adv_2+(vr-vi_tr[0])**2))
         vi_tr_dot[0] *= 0.5 # slow down inflow dynamics due to numerical unstability.
@@ -295,7 +301,7 @@ class HelicopterDynamics(DynamicSystem):
         moment_wn = np.array([0, 0, 0])        
         return force_wn, moment_wn, power_wn
 
-    def dynamics(self, state, action):
+    def dynamics(self, state, action, set_observation=False):
         #
         state_dots = self.state_dots
         #
@@ -314,7 +320,7 @@ class HelicopterDynamics(DynamicSystem):
         pedal = D2R*( self.HELI['PED_OS'] + action[3]*(self.HELI['PED_H'] - self.HELI['PED_L']) + self.HELI['PED_L'] )
 
         ###  Kinematic calculations
-        earth2body = euler_to_rotmat(state['euler']) # Earth to Body DCM matrix
+        earth2body = euler_to_rotmat(euler) # Earth to Body DCM matrix
         body2earth = earth2body.transpose() #  Body to Earth DCM matrix
 
         pqr_to_eulerdot = pqr_to_eulerdot_mat(euler) # par to eulerdot function.
@@ -323,16 +329,8 @@ class HelicopterDynamics(DynamicSystem):
 
         ###  Airspeed calculations
         uvw_air = uvw - earth2body@self.WIND_NED
-
+      
         #### Some Observations ####
-        phi_deg, theta_deg, psi_deg = R2D*euler[0], R2D*euler[1], R2D*euler[2]
-        p_dps, q_dps, r_dps = R2D*pqr[0], R2D*pqr[1], R2D*pqr[2]
-        tas = np.linalg.norm(uvw_air) # true air speed in ft/s
-        ktas = tas*FTS2KNOT # ktas in knots
-        sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [deg] Sideslip angle
-        aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [def] % Angle of Attack
-        ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
-        track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [deg] Track angle
         climb_rate = -ned_vel[2] # [ft/s] ascending rate (descending if negative)
         power_climb = self.HELI['WT']*climb_rate # Climbing power [hp]
         altitude = -xyz[2] # [ft] altitude
@@ -347,12 +345,13 @@ class HelicopterDynamics(DynamicSystem):
         force_vt, moment_vt = self._calc_vt_fm(rho, uvw_air, pqr, vi_tr)
         force_wn, moment_wn, power_wn = self._calc_wn_fm(rho, uvw_air, vi_mr)
 
+        # Other power consumptions are counted for main rotor torque
         power_extra_mr = power_climb + power_fus
         extra_mr_torque = power_extra_mr / self.MR['OMEGA']
         moment_mr[2] += extra_mr_torque
 
         power_total = power_mr + power_tr + power_extra_mr + 550*self.HELI['HP_LOSS'] 
-        power_total_hp = power_total/550
+        
 
         force_gravity = earth2body@np.array([0,0,self.HELI['WT']])
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
@@ -377,17 +376,25 @@ class HelicopterDynamics(DynamicSystem):
         state_dots['euler'] = euler_dot
         state_dots['xyz'] = xyz_dot
 
-        ### Observations
-        observartion = np.array([power_total_hp, \
-            tas, aoa_deg, sideslip_deg, \
-            ground_speed, track_angle_deg, climb_rate, \
-            phi_deg, theta_deg, psi_deg, \
-            p_dps, q_dps, r_dps,
-            body_acc[0], body_acc[1], body_acc[2], \
-            xyz[0], xyz[1], altitude],
-            )
+        if set_observation:
+            ### Observation calculations
+            power_total_hp = power_total/550 # [hp] Power consumption in Horse Power
+            tas = np.linalg.norm(uvw_air) # true air speed in ft/s
+            sideslip_deg = np.arcsin(uvw_air[1]/(tas+EPS))# [rad] Sideslip angle
+            aoa_deg = np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [rad] % Angle of Attack
+            ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
+            track_angle_deg = np.arctan2(ned_vel[1],ned_vel[0]) # [rad] Track angle
+            #
+            self.observation = np.array([power_total_hp, \
+                tas, aoa_deg, sideslip_deg, \
+                ground_speed, track_angle_deg, climb_rate, \
+                euler[0], euler[1], euler[2], \
+                pqr[0], pqr[1], pqr[2],
+                body_acc[0], body_acc[1], body_acc[2], \
+                xyz[0], xyz[1], altitude],
+                )
 
-        return state_dots, observartion
+        return state_dots
 
     def trim(self):
         n_states = 10
@@ -411,6 +418,8 @@ class HelicopterDynamics(DynamicSystem):
         self.state['betas'] = x[2:4]
         self.state['euler'][:-1] = x[4:6]
         self.last_action = x[6:10]
+        # set state dots
+        self.state_dots = self.dynamics(self.state, self.last_action, set_observation=True)
 
     def trim_fcn(self, x):
         state = copy.deepcopy(self.state)
@@ -420,7 +429,7 @@ class HelicopterDynamics(DynamicSystem):
         state['euler'][:-1] = x[4:6]
         action = x[6:10]
 
-        state_dots, _ = self.dynamics(state, action)
+        state_dots = self.dynamics(state, action)
         y = np.concatenate([state_dots['vi_mr']/self.MR['V_TIP'],
                             state_dots['vi_tr']/self.TR['V_TIP'],
                             state_dots['betas'],

@@ -77,9 +77,10 @@ class DynamicSystem(object):
         self.state = State()
         self.state_dots = State()
         self.dt = dt
-        self.last_action = None
+        self.last_action = None # should be filled after a step call.
+        self.observation = None # should be filled after a step call
 
-    def dynamics(self, state, action):
+    def dynamics(self, state, action, set_observations=False):
         raise NotImplementedError
 
     def register_state(self, name:str, value: np.ndarray):
@@ -100,17 +101,16 @@ class DynamicSystem(object):
         
     def step(self, action):
         # Solve system by RK4 a single step.
-        k1, _ = self.dynamics(self.state, action)
-        k2, _ = self.dynamics(self.state + k1 * (0.5*self.dt), action)
-        k3, _ = self.dynamics(self.state + k2 * (0.5*self.dt), action)
-        k4, _ = self.dynamics(self.state + k3 * self.dt, action)
+        k1 = self.dynamics(self.state, action)
+        k2 = self.dynamics(self.state + k1 * (0.5*self.dt), action)
+        k3 = self.dynamics(self.state + k2 * (0.5*self.dt), action)
+        k4 = self.dynamics(self.state + k3 * self.dt, action, set_observation=True)
         self.state += (k1 + k2*2 + k3*2 + k4)*(1/6 * self.dt)
         self.state_dots = k4
         self.last_action = action
 
     def get_observation(self):
-        state_dots, observartion = self.dynamics(self.state, self.last_action)
-        return observartion
+        return self.observation
 
     def trim(self):
         raise NotImplementedError
