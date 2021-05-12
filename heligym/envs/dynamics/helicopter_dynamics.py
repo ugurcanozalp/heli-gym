@@ -14,9 +14,9 @@ D2R         = 1/R2D
 
 class HelicopterDynamics(DynamicSystem):
 
-    _observations = ["POWER", "TAS", "AOA", "SSLIP", "GROUND_SPD", "TRACK", "CLIMB_RATE", 
+    _observations = ["POWER", "TAS", "AOA", "SSLIP", "N_VEL", "E_VEL", "CLIMB_RATE", 
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
-        "ACC_LON", "LAT_ACC", "DWN_ACC", "XPOS", "YPOS", "ALTITUDE"]
+        "LON_ACC", "LAT_ACC", "DWN_ACC", "N_POS", "E_POS", "ALTITUDE"]
     
     _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "a109.yaml")
     @classmethod
@@ -34,20 +34,18 @@ class HelicopterDynamics(DynamicSystem):
         # Null state dots, since it is not updated.
         self.__precalculations()
         self.set_wind() # wind velocity in earth frame:
-        self.register_states()
+        self.__register_states()
 
-    def register_states(self):
-        self.register_state('vi_mr', np.array([30.0]))
-        self.register_state('vi_tr', np.array([40.0]))
-        self.register_state('betas', np.array([0.0, 0.0]))
-        self.register_state('uvw', np.array([0.0, 0.0, 0.0]))
-        self.register_state('pqr', np.array([0.0, 0.0, 0.0]))
-        self.register_state('euler', np.array([0.0, 0.0, 0.0]))
-        cg_from_bottom = -self._ground_touching_altitude()
-        self.register_state('xyz', np.array([0.0, 0.0, cg_from_bottom-100]))
-        self.last_action = np.zeros(4)
+    def __register_states(self):
+        self._register_state('vi_mr', np.zeros(1, dtype=np.float))
+        self._register_state('vi_tr', np.zeros(1, dtype=np.float))
+        self._register_state('betas', np.zeros(2, dtype=np.float))
+        self._register_state('uvw', np.zeros(3, dtype=np.float))
+        self._register_state('pqr', np.zeros(3, dtype=np.float))
+        self._register_state('euler', np.zeros(3, dtype=np.float))
+        self._register_state('xyz', np.zeros(3, dtype=np.float))
 
-    def reset(self):
+    def __init_states(self):
         self.state['vi_mr'] = np.array([30.0])
         self.state['vi_tr'] = np.array([40.0])
         self.state['betas'] = np.array([0.0, 0.0])
@@ -56,8 +54,11 @@ class HelicopterDynamics(DynamicSystem):
         self.state['euler'] = np.array([0.0, 0.0, 0.0])
         cg_from_bottom = -self._ground_touching_altitude()
         self.state['xyz'] = np.array([0.0, 0.0, cg_from_bottom-100])
-        self.last_action = np.zeros(4)
-        self.trim()
+        self.last_action = np.zeros(4)  
+              
+    def reset(self, **kwargs):
+        self.__init_states()
+        self.trim(**kwargs)
         print("Helicopter is trimmed!")
 
     @property
@@ -191,8 +192,8 @@ class HelicopterDynamics(DynamicSystem):
 
         ### MR TPP Dynamics
         wake_fn = 0.5 + 0.5*np.tanh(10*(np.abs(uvw_air[0])/self.HELI['VTRANS']-1.0))
-        a_sum = betas[1]-lon+KC*betas[0]+DB1DV*uvw_air[1]*(1+wake_fn)
-        b_sum = betas[0]+lat-KC*betas[1]+DA1DU*uvw_air[0]*(1+2*wake_fn)
+        a_sum = betas[1]-lat+KC*betas[0]+DB1DV*uvw_air[1]*(1+wake_fn)
+        b_sum = betas[0]+lon-KC*betas[1]+DA1DU*uvw_air[0]*(1+2*wake_fn)
         betas_dot = np.zeros(2)
         betas_dot[0] = -ITB*b_sum-ITB2_OM*a_sum-pqr[1]
         betas_dot[1] = -ITB*a_sum+ITB2_OM*b_sum-pqr[0]
@@ -201,8 +202,8 @@ class HelicopterDynamics(DynamicSystem):
         X_MR=-thrust_mr*(betas[0]-self.MR['IS'])
         Y_MR=thrust_mr*betas[1]
         Z_MR=-thrust_mr
-        L_MR=Y_MR*self.MR['H']+DL_DB1*betas[1]+DL_DA1*(betas[0]+lat-self.MR['K1']*betas[1])
-        M_MR=Z_MR*self.MR['D']-X_MR*self.MR['H']+DL_DB1*betas[0]+DL_DA1*(-betas[1]+lon-self.MR['K1']*betas[0])
+        L_MR=Y_MR*self.MR['H']+DL_DB1*betas[1]+DL_DA1*(betas[0]+lon-self.MR['K1']*betas[1])
+        M_MR=Z_MR*self.MR['D']-X_MR*self.MR['H']+DL_DB1*betas[0]+DL_DA1*(-betas[1]+lat-self.MR['K1']*betas[0])
         N_MR=torque_mr
 
         force_mr = np.array([X_MR,Y_MR,Z_MR])
@@ -345,12 +346,10 @@ class HelicopterDynamics(DynamicSystem):
         uvw_air = uvw - earth2body@self.WIND_NED
       
         #### Some Observations ####
-        climb_rate = -ned_vel[2] # [ft/s] ascending rate (descending if negative)
-        power_climb = self.HELI['WT']*climb_rate # Climbing power [hp]
-        altitude = -xyz[2] # [ft] altitude
+        power_climb = self.HELI['WT']*(-ned_vel[2]) # Climbing power [hp]
 
         ### Atmosphere calculations
-        temperature, rho = self._altitude_to_air_properties(altitude)
+        temperature, rho = self._altitude_to_air_properties(-xyz[2])
         ### Main Rotor
         force_mr, moment_mr, power_mr, vi_mr_dot, betas_dot = self._calc_mr_fm(rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr)
         force_tr, moment_tr, power_tr, vi_tr_dot = self._calc_tr_fm(rho, pedal, uvw_air, pqr, vi_tr)
@@ -371,7 +370,7 @@ class HelicopterDynamics(DynamicSystem):
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
         moment_total = moment_mr + moment_tr + moment_fus + moment_ht + moment_vt + moment_wn
 
-        if self._does_hit_ground(altitude):
+        if self._does_hit_ground(-xyz[2]):
             force_total_on_earth = body2earth@force_total
             force_ground = earth2body@np.array([0,0,-force_total_on_earth[2] + EPS])
             force_total += force_ground
@@ -394,61 +393,82 @@ class HelicopterDynamics(DynamicSystem):
             ### Observation calculations
             power_total_hp = power_total/550 # [hp] Power consumption in Horse Power
             tas = np.linalg.norm(uvw_air) # true air speed in ft/s
-            sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [rad] Sideslip angle
-            aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [rad] % Angle of Attack
+            sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [deg] Sideslip angle
+            aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [deg] % Angle of Attack
             ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
-            track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [rad] Track angle
+            track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [deg] Track angle
             #
             self.observation = np.array([power_total_hp, \
                 tas, aoa_deg, sideslip_deg, \
-                ground_speed, track_angle_deg, climb_rate, \
+                ned_vel[0], ned_vel[1], -ned_vel[2], \
                 R2D*euler[0], R2D*euler[1], R2D*euler[2], \
                 R2D*pqr[0], R2D*pqr[1], R2D*pqr[2],
                 body_acc[0], body_acc[1], body_acc[2], \
-                xyz[0], xyz[1], altitude],
+                xyz[0], xyz[1], -xyz[2]],
                 )
 
         return state_dots
 
-    def trim(self):
-        n_states = 10
-        x = np.array([0.05, 0.05, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5])
-        y = self.trim_fcn(x)
+    def trim(self, yaw_rate=0, ned_vel = np.zeros(3, dtype=np.float)):
+        """
+        Trim code.
+        If necessary, user can specify velocity of helicopter in earth frame along with
+        yaw_rate which should be deg/sec.
+        """
+        n_vars = 16
+        y_target = np.zeros(n_vars, dtype=np.float)
+        y_target[-4] = D2R*yaw_rate
+        y_target[-3:] = ned_vel/self.MR['R']
+        uvw0 = ned_vel/self.MR['V_TIP']
+        x = np.array([0.05, 0.05, 0, 0, # vi_mr, vi_tr, betas
+            uvw0[-3], uvw0[-2], uvw0[-1], # uvw
+            0, 0, y_target[-4], # pqr
+            -0.01, 0.01, # phi, theta
+            0.0, 0.0, 0.0, 0.0, # actions
+            ], dtype=np.float)
+
+        y = self.__trim_fcn(x)
         tol = y.transpose()@y
         while tol>EPS**2:
             dydx = []
-            for i in range(n_states):
-                dxi = np.zeros(n_states); dxi[i]+=EPS
-                dydxi = (self.trim_fcn(x+dxi)-self.trim_fcn(x-dxi))/(2*EPS)
+            for i in range(n_vars):
+                dxi = np.zeros(n_vars); dxi[i]+=EPS
+                dydxi = (self.__trim_fcn(x+dxi)-self.__trim_fcn(x-dxi))/(2*EPS)
                 dydx.append(dydxi)
 
             dydx = np.stack(dydx, axis=-1)
-            x = x - 0.2*np.linalg.inv(dydx)@y
-            y = self.trim_fcn(x)
-            tol = y.transpose()@y
+            x = x - 0.2*np.linalg.inv(dydx)@(y-y_target)
+            y = self.__trim_fcn(x)
+            tol = (y-y_target).transpose()@(y-y_target)
 
         self.state['vi_mr'] = x[0:1]*self.MR['V_TIP']
         self.state['vi_tr'] = x[1:2]*self.TR['V_TIP']
         self.state['betas'] = x[2:4]
-        self.state['euler'][:-1] = x[4:6]
-        self.last_action = x[6:10]
+        self.state['uvw'] = x[4:7]*self.MR['V_TIP']
+        self.state['pqr'] = x[7:10]*self.MR['OMEGA']
+        self.state['euler'][:-1] = x[10:12]
+        self.last_action = x[12:16]
         # set state dots
         self.state_dots = self.dynamics(self.state, self.last_action, set_observation=True)
 
-    def trim_fcn(self, x):
+    def __trim_fcn(self, x):
         state = copy.deepcopy(self.state)
         state['vi_mr'] = x[0:1]*self.MR['V_TIP']
         state['vi_tr'] = x[1:2]*self.TR['V_TIP']
         state['betas'] = x[2:4]
-        state['euler'][:-1] = x[4:6]
-        action = x[6:10]
+        state['uvw'] = x[4:7]*self.MR['V_TIP']
+        state['pqr'] = x[7:10]*self.MR['OMEGA']
+        state['euler'][:-1] = x[10:12]
+        action = x[12:16]
 
         state_dots = self.dynamics(state, action)
         y = np.concatenate([state_dots['vi_mr']/self.MR['V_TIP'],
                             state_dots['vi_tr']/self.TR['V_TIP'],
                             state_dots['betas'],
-                            state_dots['uvw'],
-                            state_dots['pqr']/self.MR['OMEGA']])
+                            state_dots['uvw']/self.MR['V_TIP'],
+                            state_dots['pqr']/self.MR['OMEGA'],
+                            state_dots['euler'],
+                            state_dots['xyz']/self.MR['R']])
 
         return y
 

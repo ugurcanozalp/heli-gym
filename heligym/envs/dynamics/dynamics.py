@@ -83,7 +83,7 @@ class DynamicSystem(object):
     def dynamics(self, state, action, set_observations=False):
         raise NotImplementedError
 
-    def register_state(self, name:str, value: np.ndarray):
+    def _register_state(self, name:str, value: np.ndarray):
         self.state[name] = value
         self.state_dots[name] = np.zeros(value.shape)
 
@@ -119,7 +119,7 @@ class DynamicSystem(object):
         #self.state_dots = b
         #self.last_action = action
 
-    def get_observation(self):
+    def _get_observation(self):
         return self.observation
 
     def trim(self):

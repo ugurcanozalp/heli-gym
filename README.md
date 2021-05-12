@@ -23,12 +23,12 @@ In addition, inflow dynamics are added and model is adjusted so that it covers m
 ### Observation Space
 | Num | Obs                | Unit  | Min   | Max    |
 |-----|--------------------|-------|-------|--------|
-| 0   | power              | hp    | 0     | ∞      |
+| 0   | power              | hp    | -∞    | ∞      |
 | 1   | air speed          | ft/s  | 0     | ∞      |  
 | 2   | angle of attack    | deg   | -180  | 180    |
 | 3   | sideslip angle     | deg   | -180  | 180    |
-| 4   | ground speed       | ft/s  | 0     | ∞      |  
-| 5   | track angle        | deg   | -180  | 180    |
+| 4   | north speed        | ft/s  | -∞    | ∞      |  
+| 5   | east speed         | ft/s  | -∞    | ∞      |
 | 6   | climb rate         | ft/s  | -∞    | ∞      |  
 | 7   | roll angle         | deg   | -180  | 180    |
 | 8   | pitch angle        | deg   | -180  | 180    |

@@ -31,7 +31,7 @@ class Heli(gym.Env, EzPickle):
         yaml_path = self._default_yaml if yaml_path is None else yaml_path
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
-        self.action_space = spaces.Box(0, +1, (4,), dtype=np.float32)
+        self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
@@ -50,7 +50,7 @@ class Heli(gym.Env, EzPickle):
 
         self._bGuiText = False
        
-    def set_maxtime(self, max_time):
+    def set_max_time(self, max_time):
         self.max_time = max_time
 
     def __create_guiINFO_text(self):
@@ -59,8 +59,8 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append( bytes( "TAS        : %5.2f ft/s", 'utf-8'))
         self.guiINFO_text.append( bytes( "AOA        : %5.2f °", 'utf-8'))
         self.guiINFO_text.append( bytes( "SSLIP      : %5.2f °", 'utf-8'))
-        self.guiINFO_text.append( bytes( "GRS        : %5.2f ft/s", 'utf-8'))
-        self.guiINFO_text.append( bytes( "TRACK      : %5.2f °", 'utf-8'))
+        self.guiINFO_text.append( bytes( "N_VEL      : %5.2f ft/s", 'utf-8'))
+        self.guiINFO_text.append( bytes( "E_VEL      : %5.2f ft/s", 'utf-8'))
         self.guiINFO_text.append( bytes( "CLIMB_RATE : %5.2f ft/s", 'utf-8'))
         self.guiINFO_text.append( bytes( "ROLL       : %5.2f °", 'utf-8'))
         self.guiINFO_text.append( bytes( "PITCH      : %5.2f °", 'utf-8'))
@@ -70,16 +70,16 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append( bytes( "YAW_RATE   : %5.2f °/sec", 'utf-8'))
         self.guiINFO_text.append( bytes( "LON_ACC    : %5.2f ft/sec^2", 'utf-8'))
         self.guiINFO_text.append( bytes( "LAT_ACC    : %5.2f ft/sec^2", 'utf-8'))
-        self.guiINFO_text.append( bytes( "DWN_ACC    : %5.2f ft/sec^2", 'utf-8'))
-        self.guiINFO_text.append( bytes( "X_LOC      : %5.2f ft", 'utf-8'))
-        self.guiINFO_text.append( bytes( "Y_LOC      : %5.2f ft", 'utf-8'))
-        self.guiINFO_text.append( bytes( "Z_LOC      : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append( bytes( "DOWN_ACC   : %5.2f ft/sec^2", 'utf-8'))
+        self.guiINFO_text.append( bytes( "N_POS      : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append( bytes( "E_POS      : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append( bytes( "ALTITUDE   : %5.2f ft", 'utf-8'))
 
     def __add_to_guiText(self):
-        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn.get_observation())
+        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn._get_observation())
 
     def render(self):
-        self.renderer.set_guiOBS(self.guiINFO_text, self.heli_dyn.get_observation())
+        self.renderer.set_guiOBS(self.guiINFO_text, self.heli_dyn._get_observation())
         
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
@@ -108,7 +108,6 @@ class Heli(gym.Env, EzPickle):
             
         self.renderer.render()
         
-
     def close(self):
         self.renderer.close()
         self.renderer.terminate()
@@ -119,7 +118,7 @@ class Heli(gym.Env, EzPickle):
     def step(self, actions):
         self.time_counter += DT
         self.heli_dyn.step(actions)
-        observation = self.heli_dyn.get_observation()
+        observation = self.heli_dyn._get_observation()
         reward = self._calculate_reward()
         info = self._get_info()
         done = info['failed'] or info['successed'] or (self.time_counter > self.max_time)
@@ -134,14 +133,14 @@ class Heli(gym.Env, EzPickle):
         self.heli_dyn.state['betas'] = pi_bound(self.heli_dyn.state['betas'])
         self.heli_dyn.state['euler'] = pi_bound(self.heli_dyn.state['euler'])
 
-    def reset(self):
+    def reset(self, **kwargs):
         self.time_counter = 0
-        self.heli_dyn.reset()
+        self.heli_dyn.reset(**kwargs)
         if not self._bGuiText:
             self.__create_guiINFO_text()
             self.__add_to_guiText()
             self._bGuiText = True
-        return self.heli_dyn.get_observation()      
+        return self.heli_dyn._get_observation()      
 
     def _get_info(self):
         return {'failed': self._is_failed(), 'successed': self._is_successed(), 'successed_step': self._is_successed_step()}
