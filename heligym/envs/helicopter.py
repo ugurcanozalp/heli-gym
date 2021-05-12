@@ -47,6 +47,8 @@ class Heli(gym.Env, EzPickle):
 
         self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
         self.renderer.add_permanent_object_to_window(self.sky)
+
+        self._bGuiText = False
        
     def set_maxtime(self, max_time):
         self.max_time = max_time
@@ -135,8 +137,10 @@ class Heli(gym.Env, EzPickle):
     def reset(self):
         self.time_counter = 0
         self.heli_dyn.reset()
-        self.__create_guiINFO_text()
-        self.__add_to_guiText()
+        if not self._bGuiText:
+            self.__create_guiINFO_text()
+            self.__add_to_guiText()
+            self._bGuiText = True
         return self.heli_dyn.get_observation()      
 
     def _get_info(self):

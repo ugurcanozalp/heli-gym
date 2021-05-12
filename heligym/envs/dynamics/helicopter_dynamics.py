@@ -48,6 +48,15 @@ class HelicopterDynamics(DynamicSystem):
         self.last_action = np.zeros(4)
 
     def reset(self):
+        self.state['vi_mr'] = np.array([30.0])
+        self.state['vi_tr'] = np.array([40.0])
+        self.state['betas'] = np.array([0.0, 0.0])
+        self.state['uvw'] = np.array([0.0, 0.0, 0.0])
+        self.state['pqr'] = np.array([0.0, 0.0, 0.0])
+        self.state['euler'] = np.array([0.0, 0.0, 0.0])
+        cg_from_bottom = -self._ground_touching_altitude()
+        self.state['xyz'] = np.array([0.0, 0.0, cg_from_bottom-100])
+        self.last_action = np.zeros(4)
         self.trim()
         print("Helicopter is trimmed!")
 
