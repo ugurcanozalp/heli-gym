@@ -18,32 +18,37 @@
 class Shader
 {
 public:
+    // Shader variable. 
     unsigned int ID;
-    // constructor generates the shader on the fly
-    // ------------------------------------------------------------------------
+
+    // Constructor generates the shader.
     Shader(const char* vertexPath, const char* fragmentPath)
     {
-        // 1. retrieve the vertex/fragment source code from filePath
+        // Retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;
         std::ifstream fShaderFile;
-        // ensure ifstream objects can throw exceptions:
+
+        // Ensure ifstream objects can throw exceptions:
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         try
         {
-            // open files
+            // Open files
             vShaderFile.open(vertexPath);
             fShaderFile.open(fragmentPath);
             std::stringstream vShaderStream, fShaderStream;
-            // read file's buffer contents into streams
+            
+            // Read file's buffer contents into streams
             vShaderStream << vShaderFile.rdbuf();
             fShaderStream << fShaderFile.rdbuf();
-            // close file handlers
+            
+            // Close file handlers
             vShaderFile.close();
             fShaderFile.close();
-            // convert stream into string
+            
+            // Convert stream into string
             vertexCode = vShaderStream.str();
             fragmentCode = fShaderStream.str();
         }
@@ -51,99 +56,120 @@ public:
         {
             std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ | " << vertexPath << " " << e.what() << std::endl;
         }
+
         const char* vShaderCode = vertexCode.c_str();
         const char* fShaderCode = fragmentCode.c_str();
-        // 2. compile shaders
+        
+        // Compile shaders
         unsigned int vertex, fragment;
-        // vertex shader
+        
+        // Vertex shader
         vertex = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex, 1, &vShaderCode, NULL);
         glCompileShader(vertex);
         checkCompileErrors(vertex, "VERTEX");
-        // fragment Shader
+        
+        // Fragment Shader
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment, 1, &fShaderCode, NULL);
         glCompileShader(fragment);
         checkCompileErrors(fragment, "FRAGMENT");
-        // shader Program
+        
+        // Shader Program
         this->ID = glCreateProgram();
         glAttachShader(this->ID, vertex);
         glAttachShader(this->ID, fragment);
         glLinkProgram(this->ID);
         checkCompileErrors(this->ID, "PROGRAM");
-        // delete the shaders as they're linked into our program now and no longer necessery
+        
+        // Delete the shaders as they're linked into program and no longer necessery
         glDeleteShader(vertex);
         glDeleteShader(fragment);
 
     }
-    // activate the shader
-    // ------------------------------------------------------------------------
+
+    // Activating the shader.
     void use() const
     {
         glUseProgram(this->ID);
     }
-    // utility uniform functions
-    // ------------------------------------------------------------------------
+
+    // Utility uniform functions
+    
+    // Setting boolean type uniform by its name.
     void setBool(const std::string& name, bool value) const
     {
         glUniform1i(glGetUniformLocation(this->ID, name.c_str()), (int)value);
     }
-    // ------------------------------------------------------------------------
+    
+    // Setting integer type uniform by its name.
     void setInt(const std::string& name, int value) const
     {
         glUniform1i(glGetUniformLocation(this->ID, name.c_str()), value);
     }
-    // ------------------------------------------------------------------------
+    
+    // Setting float type uniform by its name.
     void setFloat(const std::string& name, float value) const
     {
         glUniform1f(glGetUniformLocation(this->ID, name.c_str()), value);
     }
-    // ------------------------------------------------------------------------
+    
+    // Setting vec2 type uniform by its name.
     void setVec2(const std::string& name, const glm::vec2& value) const
     {
         glUniform2fv(glGetUniformLocation(this->ID, name.c_str()), 1, &value[0]);
     }
+
+    // Setting vec2 type uniform by its name.
     void setVec2(const std::string& name, float x, float y) const
     {
         glUniform2f(glGetUniformLocation(this->ID, name.c_str()), x, y);
     }
-    // ------------------------------------------------------------------------
+
+    // Setting vec3 type uniform by its name.
     void setVec3(const std::string& name, const glm::vec3& value) const
     {
         glUniform3fv(glGetUniformLocation(this->ID, name.c_str()), 1, &value[0]);
     }
+
+    // Setting vec3 type uniform by its name.
     void setVec3(const std::string& name, float x, float y, float z) const
     {
         glUniform3f(glGetUniformLocation(this->ID, name.c_str()), x, y, z);
     }
-    // ------------------------------------------------------------------------
+
+    // Setting vec4 type uniform by its name.
     void setVec4(const std::string& name, const glm::vec4& value) const
     {
         glUniform4fv(glGetUniformLocation(this->ID, name.c_str()), 1, &value[0]);
     }
+
+    // Setting vec4 type uniform by its name.
     void setVec4(const std::string& name, float x, float y, float z, float w) const
     {
         glUniform4f(glGetUniformLocation(this->ID, name.c_str()), x, y, z, w);
     }
-    // ------------------------------------------------------------------------
+    
+    // Setting mat2 type uniform by its name.
     void setMat2(const std::string& name, const glm::mat2& mat) const
     {
         glUniformMatrix2fv(glGetUniformLocation(this->ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
-    // ------------------------------------------------------------------------
+
+    // Setting mat3 type uniform by its name.
     void setMat3(const std::string& name, const glm::mat3& mat) const
     {
         glUniformMatrix3fv(glGetUniformLocation(this->ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
-    // ------------------------------------------------------------------------
+    
+    // Setting mat4 type uniform by its name.
     void setMat4(const std::string& name, const glm::mat4& mat) const
     {
         glUniformMatrix4fv(glGetUniformLocation(this->ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
-
+    
 private:
-    // utility function for checking shader compilation/linking errors.
-    // ------------------------------------------------------------------------
+    // Utility function for checking shader compilation/linking errors.
     void checkCompileErrors(GLuint shader, std::string type)
     {
         GLint success;

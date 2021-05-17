@@ -3,7 +3,7 @@
 
 #include "shader.h"
 
-
+// Vertex structure for store related parameters.
 struct Vertex {
     // position
     glm::vec3 Position;
@@ -17,6 +17,7 @@ struct Vertex {
     glm::vec3 Bitangent;
 };
 
+// Texture store structure.
 struct Texture {
     unsigned int id;
     std::string type;
@@ -25,23 +26,25 @@ struct Texture {
 
 class Mesh {
 public:
-    // mesh Data
+    // Mesh Data
     std::vector<Vertex>       vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture>      textures;
+    std::vector<float>        opacity;
     unsigned int VAO;
+    std::string opacityname = "opacity";
 
-    // constructor
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
+    // Constructor
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, std::vector<float> opacity);
     
-    // render the mesh
+    // Render the mesh
     void draw(Shader &shader);
 
 private:
-    // render data 
+    // Render data 
     unsigned int VBO, EBO;
 
-    // initializes all the buffer objects/arrays
+    // Initializes all the buffer objects/arrays
     void setupMesh();
 };
 #endif

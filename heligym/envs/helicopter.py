@@ -29,7 +29,7 @@ class Heli(gym.Env, EzPickle):
     def __init__(self, yaml_path:str = None):
         EzPickle.__init__(self)
         yaml_path = self._default_yaml if yaml_path is None else yaml_path
-        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
+        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT, os.environ['HELIGYM_RESOURCE_DIR'] + '/models/terrain/hmap.npy')
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.max_time = 30 # seconds
@@ -38,15 +38,19 @@ class Heli(gym.Env, EzPickle):
         
         self.renderer = Renderer(w=1200, h=800, title='Heligym')
         self.renderer.set_fps(FPS)
-
-        self.heli_render_obj = self.renderer.create_model('/resources/models/a109/a109.obj')
-        self.renderer.add_permanent_object_to_window(self.heli_render_obj)
-
-        self.ground = self.renderer.create_model('/resources/models/ground/ground.obj')
-        self.renderer.add_permanent_object_to_window(self.ground)
+     
+        self.terrain = self.renderer.create_model('/resources/models/terrain/terrain.obj',
+                                                 '/resources/shaders/vertex.vs',
+                                                 '/resources/shaders/frag.fs')
+        self.renderer.add_permanent_object_to_window(self.terrain)
 
         self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
         self.renderer.add_permanent_object_to_window(self.sky)
+
+        self.heli_render_obj = self.renderer.create_model('/resources/models/AW109/AW109.obj',
+                                                          '/resources/shaders/aw109_vertex.vs',
+                                                          '/resources/shaders/aw109_frag.fs')
+        self.renderer.add_permanent_object_to_window(self.heli_render_obj)
 
         self._bGuiText = False
        
@@ -76,11 +80,31 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append( bytes( "ALTITUDE   : %5.2f ft", 'utf-8'))
 
     def __add_to_guiText(self):
-        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn._get_observation())
+        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn._get_observation())        
 
     def render(self):
-        self.renderer.set_guiOBS(self.guiINFO_text, self.heli_dyn._get_observation())
+        val = self.heli_dyn._get_observation()
+        val = np.append(val, np.array([0.3, 0.2]))
+
+        self.renderer.set_guiOBS(self.guiINFO_text, val)
+
+        def pi_bound(x):
+            return (x + np.pi) % (2 * np.pi) - np.pi
+
+        mr_azimuth = self.heli_dyn.MR['OMEGA'] * self.time_counter 
+        tr_azimuth = self.heli_dyn.TR['OMEGA'] * self.time_counter 
         
+        self.renderer.rotate_MR(self.heli_render_obj, 
+                                self.heli_dyn.state['betas'][1],
+                                self.heli_dyn.state['betas'][0],
+                                pi_bound(mr_azimuth))
+
+        self.renderer.rotate_TR(self.heli_render_obj, 
+                                0,
+                                pi_bound(tr_azimuth),
+                                0)
+
+
         self.renderer.translate_model(self.heli_render_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
                                     self.heli_dyn.state['xyz'][1] * FT2MTR,
@@ -95,13 +119,8 @@ class Heli(gym.Env, EzPickle):
 
         self.renderer.set_camera_pos(self.heli_dyn.state['xyz'][0] * FT2MTR,
                                     self.heli_dyn.state['xyz'][1] * FT2MTR + 30,
-                                    self.heli_dyn.state['xyz'][2] * FT2MTR)
+                                    self.heli_dyn.state['xyz'][2] * FT2MTR )
 
-        cam_loc = self.renderer.get_camera_pos()
-        cam_loc_x, cam_loc_y, cam_loc_z = self.renderer.coord_from_graphics_to_ned(cam_loc[0], cam_loc[1], cam_loc[2])
-        self.renderer.translate_model(self.sky, cam_loc_x, cam_loc_y, cam_loc_z)
-
-        self.renderer.translate_model(self.ground, 0, 0, 10)
 
         if not self.renderer.is_visible():
             self.renderer.show_window()

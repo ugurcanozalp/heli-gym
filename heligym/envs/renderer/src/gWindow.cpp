@@ -1,27 +1,23 @@
 #include "gWindow.h"
 
-
-MainWindow::MainWindow(const unsigned int SCR_WIDTH,
+Window::Window(const unsigned int SCR_WIDTH,
                         const unsigned int SCR_HEIGHT,
                         const char* title)
 {
-    // glfw: initialize and configure
-    // ------------------------------
+    // Initialize GLFW.
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    //glfwSwapInterval(0);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
 
-
+    // Handle for Apple.
     #ifdef __APPLE__
             glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     #endif
 
-    // glfw window creation
-    // --------------------
+    // Create Window.
     this->SCR_WIDTH = SCR_WIDTH;
     this->SCR_HEIGHT = SCR_HEIGHT;
     this->window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, title, NULL, NULL);
@@ -31,38 +27,38 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
         glfwTerminate();
     }
 
-
+    // Set the context.
     glfwMakeContextCurrent(this->window);
 
-
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
+    // Initialize GLAD.
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
     }
 
-    // configure global opengl state
-    // -----------------------------
+    // Enable Global OpenGL properties.
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);  
+    glEnable(GL_BLEND);  
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE);  
 
-    // camera
+    // Create camera.
     this->camera = new Camera(glm::vec3(5.415f, 0.2f, 30.0f),
         glm::vec3(0.0f, 1.0f, 0.0f));
 
     this->lastX = SCR_WIDTH / 2.0f;
     this->lastY = SCR_HEIGHT / 2.0f;
 
-
+    // Set Input Mode for mouse buttons.
     glfwSetInputMode(this->window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 
+    // Set callbacks functions to the window and window pointer to OpenGL.
     glfwSetWindowUserPointer(this->window, this);
-    glfwSetFramebufferSizeCallback(this->window, MainWindow::static_framebuffer_size_callback);
-    glfwSetCursorPosCallback(this->window, MainWindow::static_mouse_callback);
-    glfwSetScrollCallback(this->window, MainWindow::static_scroll_callback);
+    glfwSetFramebufferSizeCallback(this->window, Window::static_framebuffer_size_callback);
+    glfwSetCursorPosCallback(this->window, Window::static_mouse_callback);
+    glfwSetScrollCallback(this->window, Window::static_scroll_callback);
 
-    // Create gui 
+    // Create gui.
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -70,81 +66,65 @@ MainWindow::MainWindow(const unsigned int SCR_WIDTH,
     ImGui_ImplGlfw_InitForOpenGL(this->window, true);
     ImGui_ImplOpenGL3_Init("#version 150");
 
-
+    // Add first item of guiOBS as FPS.
     this->add_item_to_guiText(&this->guiOBS, "FPS : %3.f", &this->FPS);
 
 }
 
-void MainWindow::create_shader(std::string shader_file_path)
-{
-    // build and compile our shader program
-    // ------------------------------------
-    std::string vertex_loc = shader_file_path + "/vertex.vs";
-    std::string frag_loc = shader_file_path + "/frag.fs";
-    this->ourShader = new Shader(vertex_loc.c_str(), frag_loc.c_str());
-    this->ourShader->use();
-}
 
-void MainWindow::render()
+void Window::render()
 {
     if (!glfwWindowShouldClose(this->window))
     {
-        // render
-        // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        // Clear window for new frame.
+        glClearColor(61.0f/255.0, 89.0f/255.0, 129.0f/255.0, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                
-
-        // activate shader
-        this->ourShader->use();
        
-        // pass projection matrix to shader (note that in this case it could change every frame)
-        glm::mat4 projection = glm::perspective(glm::radians(this->camera->Zoom), (float)this->SCR_WIDTH / (float)this->SCR_HEIGHT, 0.1f, 2000.0f);
+        // Get procection matrix.
+        glm::mat4 projection = glm::perspective(glm::radians(this->camera->Zoom), (float)this->SCR_WIDTH / (float)this->SCR_HEIGHT, 0.1f, 10000.0f);
 
-        // camera/view transformation
+        // Camera/view transformation.
         glm::mat4 view = this->camera->GetViewMatrix();
-        glm::mat4 p_v = projection * view;
-        this->ourShader->setMat4("projection_view", p_v);    
+        this->projection_view = projection * view;
         
-        // draw objects
+        // Draw objects.
         this->draw();     
     
-        // render gui
+        // Render gui.
         this->renderGUI();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        //glfwSwapBuffers(this->window);
+        // To close off the v-sync, we used glFlush instead of double buffers.
         glFlush();
+
+        // Poll OpenGL events.
         glfwPollEvents();        
 
-        // per-frame time logic
-        // --------------------
+        // If OpenGL FPS is higher than dynamics' FPS (which calculated in Python side)
+        // wait some times to sync them.
+
+        // Calculate passed time from last rendered frame.
         this->deltaTime = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - this->lastFrame);
 
-        
-        //if (this->deltaTime >= 1.0/this->FPS_limit)
+        // Calculate difference of passed time and dt which is calculated by FPS.
         auto diff =  (this->dt - this->deltaTime);
-        //std::cout << " DIF " << diff.count() << std::endl;
+
+        // If there is difference, wait that much time.
         if (diff.count() > 0)
         {
-            auto t1 = std::chrono::steady_clock::now();
-            //std::this_thread::sleep_for(diff); 
             this->preciseSleep(diff.count()/1e9);
-            auto t2 = std::chrono::steady_clock::now();
-            auto int_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1);
-            //std::cout << "WAIT " << " " << int_ms.count() << std::endl;
         } 
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
+        // Calculate FPS from last rendered frame.
         auto dt1 =  std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - this->lastFrame);
-        this->FPS = 1.0f / (dt1.count() / 1e9);
-        //std::cout << "FPS " << this->FPS << " DT " <<  (dt1.count() / 1e9) << std::endl;
+        this->FPS = 1.0f / (dt1.count() / 1e9f);
 
+        // Set current time as last frame time.
         this->lastFrame = std::chrono::steady_clock::now();
-
     }
     else
     {
+        // If window should close. Close the Dear ImGui.
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
@@ -152,13 +132,15 @@ void MainWindow::render()
 }
 
 
-void MainWindow::preciseSleep(double seconds) {
-
+void Window::preciseSleep(double seconds) 
+{
+    // Create temporary variables.
     static double estimate = 5e-3;
     static double mean = 5e-3;
     static double m2 = 0;
     static int64_t count = 1;
 
+    // Wait upto seconds.
     while (seconds > estimate) {
         auto start = std::chrono::steady_clock::now();
         std::this_thread::sleep_for(std::chrono::microseconds(10));
@@ -175,55 +157,45 @@ void MainWindow::preciseSleep(double seconds) {
         estimate = mean + stddev;
     }
 
-    // spin lock
+    // Spin lock handling.
     auto start = std::chrono::steady_clock::now();
     while ((std::chrono::steady_clock::now() - start).count() / 1e9 < seconds);
 }
 
-void MainWindow::renderGUI()
+void Window::renderGUI()
 {
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    // Set Observation text location and size.
     ImVec2 info_pos = ImVec2(30.0f, 30.0f);
     ImGui::SetNextWindowPos(info_pos);
     ImGui::SetNextWindowSize(ImVec2(250, 0));
-    ImGui::Begin("Observations!");
 
+    // Render Observations text.
+    ImGui::Begin("Observations!");
     for (int i = 0; i < this->guiOBS.size(); i++)
     {
         ImGui::Text(this->guiOBS[i].str, *this->guiOBS[i].val);
     }
-
     ImGui::End();
 
+    // Render the gui.
     ImGui::Render();
 }
 
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void MainWindow::processInput(GLFWwindow* window)
+void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-        
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void MainWindow::framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
 
 
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
-void MainWindow::mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void Window::mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+    // If first frame, set the lastX & lastY as default parameters.
     if (firstMouse)
     {
         lastX = (float)xpos;
@@ -231,93 +203,76 @@ void MainWindow::mouse_callback(GLFWwindow* window, double xpos, double ypos)
         firstMouse = false;
     }
 
+    // Set offsets.
     this->xoffset = (float)xpos - lastX;
     this->yoffset = lastY - (float)ypos; // reversed since y-coordinates go from bottom to top
 
+    // Set lastX & lastY.
     lastX = (float)xpos;
     lastY = (float)ypos;
 
-
+    // If left mouse button pressed, change the camera angles.
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
         this->camera->ProcessMouseMovement(-this->xoffset, -this->yoffset);
-    }
-       
+    }       
 }
 
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
-void MainWindow::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     this->camera->ProcessMouseScroll((float)yoffset);
 }
 
-// glfw : window focus
-void MainWindow::window_focus_callback(GLFWwindow* window, int focus)
-{
-    if (focus)
-    {
-        std::cout << "FOCUSED" << std::endl;
-        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
-    else
-    {
-        std::cout << "NOT FOCUSED" << std::endl;
-        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
 
-}
-
-void MainWindow::static_framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void Window::static_framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    MainWindow* temp_window = static_cast<MainWindow*>(glfwGetWindowUserPointer(window));
+    Window* temp_window = static_cast<Window*>(glfwGetWindowUserPointer(window));
     temp_window->framebuffer_size_callback(window, width, height);
 }
-void MainWindow::static_mouse_callback(GLFWwindow* window, double xpos, double ypos)
+
+
+void Window::static_mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    MainWindow* temp_window = static_cast<MainWindow*>(glfwGetWindowUserPointer(window));
+    Window* temp_window = static_cast<Window*>(glfwGetWindowUserPointer(window));
     temp_window->mouse_callback(window, xpos, ypos);
 }
-void MainWindow::static_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+
+
+void Window::static_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    MainWindow* temp_window = static_cast<MainWindow*>(glfwGetWindowUserPointer(window));
+    Window* temp_window = static_cast<Window*>(glfwGetWindowUserPointer(window));
     temp_window->scroll_callback(window, xoffset, yoffset);
 }
-void MainWindow::static_window_focus_callback(GLFWwindow* window, int focused)
-{
-    MainWindow* temp_window = static_cast<MainWindow*>(glfwGetWindowUserPointer(window));
-    temp_window->window_focus_callback(window, focused);
-}
 
 
-
-void MainWindow::add_permanent_drawables(Model* drawable)
+void Window::add_permanent_drawables(Model* drawable)
 {
 	this->permanent_drawables.push_back(drawable);
 }
 
-void MainWindow::add_instantaneous_drawables(Model* drawable)
+void Window::add_instantaneous_drawables(Model* drawable)
 {
 	this->instantaneous_drawables.push_back(drawable);
 }
 
-void MainWindow::draw()
+
+void Window::draw()
 {
 	for (int i = 0; i < this->permanent_drawables.size(); i++)
 	{
-		this->permanent_drawables[i]->draw(*this->ourShader);
+		this->permanent_drawables[i]->draw(this->projection_view, this->camera->Position);
 	}
 
 	for (int i = 0; i < this->instantaneous_drawables.size(); i++)
 	{
-		this->instantaneous_drawables[i]->draw(*this->ourShader);
+		this->instantaneous_drawables[i]->draw(this->projection_view, this->camera->Position);
 	}
 	this->instantaneous_drawables.clear();
 }
 
 
-void MainWindow::add_item_to_guiText(std::vector<guiText>* _guiText, const char* str, float* val)
+void Window::add_item_to_guiText(std::vector<guiText>* _guiText, const char* str, float* val)
 {
     guiText* temp = new guiText((char*) str, val);
     _guiText->push_back(*temp);
@@ -325,13 +280,10 @@ void MainWindow::add_item_to_guiText(std::vector<guiText>* _guiText, const char*
 }
 
 
-
-void MainWindow::set_guiOBS( float* val)
+void Window::set_guiOBS( float* val)
 {
     for (int i = 0; i < this->guiOBS.size(); i++)
     {
-        //std::cout << str[i] << std::endl;
-        //this->guiOBS[i + 1].str = str[i];
         this->guiOBS[i + 1].val = &val[i] ;
     }
 }

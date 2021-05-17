@@ -11,48 +11,75 @@
 
 #include "gWindow.h"
 
-extern "C" RENDERER_API void create_shader(MainWindow * window, char* path);
+// RENDERER API for creating shared libraries to call methods from Python.
 
-extern "C" RENDERER_API MainWindow* create_window(const unsigned int WIDTH,
-												  const unsigned int HEIGHT,
-												  const char* title);
+// Creating window.
+extern "C" RENDERER_API Window* create_window(const unsigned int WIDTH,
+										      const unsigned int HEIGHT,
+										      const char* title);
 
-extern "C" RENDERER_API void close(MainWindow* window);
+// Close window.
+extern "C" RENDERER_API void close(Window* window);
 
-extern "C" RENDERER_API bool is_close(MainWindow* window);
+// Check the window is closed or not.
+extern "C" RENDERER_API bool is_close(Window* window);
 
-extern "C" RENDERER_API void render(MainWindow* window);
+// Render the window.
+extern "C" RENDERER_API void render(Window* window);
 
+// Terminate the OpenGL.
 extern "C" RENDERER_API void terminate();
 
-extern "C" RENDERER_API Model* create_model(char* name);
+// Create model with its shaders.
+extern "C" RENDERER_API Model* create_model(char* model_path, char* vertex_shader_file_path, char* fragment_shader_file_path);
 
-extern "C" RENDERER_API void add_permanent_to_window(MainWindow* window, Model* model);
+// Add model as permanent drawables object to window.
+extern "C" RENDERER_API void add_permanent_to_window(Window* window, Model* model);
 
-extern "C" RENDERER_API void add_instantaneous_to_window(MainWindow* window, Model* model);
+// Add model as instantaneous drawables object to window.
+extern "C" RENDERER_API void add_instantaneous_to_window(Window* window, Model* model);
 
+// Translate model to locations. Locations will be in OpenGL coordinates.
 extern "C" RENDERER_API void translate_model(Model* model, float x, float y, float z);
 
+// Rotate model to angle. From will be an rotation around arbitrary angle.
 extern "C" RENDERER_API void rotate_model(Model* model, float angle, float x, float y, float z);
 
+// Scale model to the ratios for each axis.
 extern "C" RENDERER_API void scale_model(Model* model, float x, float y, float z);
 
-extern "C" RENDERER_API float get_fps(MainWindow* window);
+// Get FPS from the window.
+extern "C" RENDERER_API float get_fps(Window* window);
 
-extern "C" RENDERER_API void set_fps(MainWindow* window, float fps);
+// Set FPS of the window.
+extern "C" RENDERER_API void set_fps(Window* window, float fps);
 
-extern "C" RENDERER_API Camera* get_camera(MainWindow* window);
+// Get Camera pointer of the window.
+extern "C" RENDERER_API Camera* get_camera(Window* window);
 
+// Set Camera position of each axis.
 extern "C" RENDERER_API void set_camera_pos(Camera* camera, float x, float y, float z);
 
+// Get camera position as float array.
 extern "C" RENDERER_API float* get_camera_pos(Camera * camera);
 
-extern "C" RENDERER_API bool is_visible(MainWindow * window);
+// Check whether the window is visible or not.
+extern "C" RENDERER_API bool is_visible(Window* window);
 
-extern "C" RENDERER_API void hide_window(MainWindow* window);
+// Hide the window.
+extern "C" RENDERER_API void hide_window(Window* window);
 
-extern "C" RENDERER_API void show_window(MainWindow* window);
+// Show the window.
+extern "C" RENDERER_API void show_window(Window* window);
 
-extern "C" RENDERER_API void add_guiOBS(MainWindow* window, int size, char** _str, float* _val);
+// Add the guiText to guiOBS.
+extern "C" RENDERER_API void add_guiOBS(Window* window, int size, char** _str, float* _val);
 
-extern "C" RENDERER_API void set_guiOBS(MainWindow * window, float* _val);
+// Set the guiText of guiOBS.
+extern "C" RENDERER_API void set_guiOBS(Window* window, float* _val);
+
+// Rotate the model Main Rotor with each angle which are in radians.
+extern "C" RENDERER_API void rotate_MR(Model* model, float phi, float theta, float psi);
+
+// Rotate the model Tail Rotor with each angle which are in radians.
+extern "C" RENDERER_API void rotate_TR(Model* model, float phi, float theta, float psi);

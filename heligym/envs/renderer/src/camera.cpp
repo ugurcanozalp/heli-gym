@@ -39,10 +39,15 @@ glm::mat4 Camera::GetViewMatrix()
 
 void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
 {
+	// Set boost of camera. 
 	boost = 1.0f;
 	if (direction == BOOST)
 		boost *= 50.5f;
+
+	// Set velocity of the camera.
 	float velocity = MovementSpeed * deltaTime * boost;
+	
+	// Set new position of camera.
 	if (direction == FORWARD)
 		Position += Front * velocity;
 	if (direction == BACKWARD)
@@ -59,13 +64,15 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
 
 void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch)
 {
+	// Set new offset of mouse w.r.t mouse sensitivity.
 	xoffset *= MouseSensitivity;
 	yoffset *= MouseSensitivity;
 
-	Yaw += xoffset;
-	Pitch += yoffset;
+	// Change camera angles.
+	this->Yaw += xoffset;
+	this->Pitch += yoffset;
 
-	// make sure that when pitch is out of bounds, screen doesn't get flipped
+	// Make sure that when pitch is out of bounds, screen doesn't get flipped.
 	if (constrainPitch)
 	{
 		if (Pitch > 89.0f)
@@ -74,12 +81,13 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constr
 			Pitch = -89.0f;
 	}
 
-	// update Front, Right and Up Vectors using the updated Euler angles
+	// Update Front, Right and Up Vectors using the updated Euler angles
 	updateCameraVectors();
 }
 
 void Camera::ProcessMouseScroll(float yoffset)
 {
+	// Set zoom value of camera.
 	Zoom -= (float)yoffset;
 	if (Zoom < 1.0f)
 		Zoom = 1.0f;
@@ -89,12 +97,13 @@ void Camera::ProcessMouseScroll(float yoffset)
 
 void Camera::updateCameraVectors()
 {
-	// calculate the new Front vector
+	// Calculate the new Front vector
 	glm::vec3 front;
 	front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
 	front.y = sin(glm::radians(Pitch));
 	front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
 	Front = glm::normalize(front);
+
 	// also re-calculate the Right and Up vector
 	Right = glm::normalize(glm::cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 	Up = glm::normalize(glm::cross(Right, Front));
