@@ -4,7 +4,7 @@ import sys
 
 packagedir = os.path.dirname(os.path.abspath(__file__))
 os.environ['HELIGYM_LIBS_DIR'] = os.path.join(packagedir, 'libs')
-os.environ['HELIGYM_PYTHON_DIR'] = os.path.join(packagedir, 'python')
+os.environ['HELIGYM_PYTHON_DIR'] = os.path.join(packagedir, 'bin')
 os.environ['HELIGYM_RESOURCE_DIR'] = os.path.join(packagedir, 'resources')    
 
 if sys.platform == 'win32':

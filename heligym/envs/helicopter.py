@@ -10,7 +10,7 @@ from gym import spaces
 from gym.utils import seeding, EzPickle
 
 from .dynamics import HelicopterDynamics
-from .renderer.render_api import Renderer
+from .renderer.api import Renderer
 
 FPS         = 100.0
 DT          = 1/FPS
@@ -25,18 +25,18 @@ class Heli(gym.Env, EzPickle):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : FPS
     }
-    _default_yaml = os.path.join(os.path.dirname(__file__), "helis", "a109.yaml")
-    def __init__(self, yaml_path:str = None):
+    def __init__(self, heli_name:str = "aw109"):
         EzPickle.__init__(self)
-        yaml_path = self._default_yaml if yaml_path is None else yaml_path
+        yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT, os.environ['HELIGYM_RESOURCE_DIR'] + '/models/terrain/hmap.npy')
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
+        self.trim_cond = {'yaw_rate': 0, 'ned_vel': np.zeros(3, dtype=np.float), 'gr_alt': 100}
         
-        self.renderer = Renderer(w=1200, h=800, title='Heligym')
+        self.renderer = Renderer(w=1024, h=768, title='heligym')
         self.renderer.set_fps(FPS)
      
         self.terrain = self.renderer.create_model('/resources/models/terrain/terrain.obj',
@@ -47,10 +47,10 @@ class Heli(gym.Env, EzPickle):
         self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
         self.renderer.add_permanent_object_to_window(self.sky)
 
-        self.heli_render_obj = self.renderer.create_model('/resources/models/AW109/AW109.obj',
-                                                          '/resources/shaders/aw109_vertex.vs',
-                                                          '/resources/shaders/aw109_frag.fs')
-        self.renderer.add_permanent_object_to_window(self.heli_render_obj)
+        self.heli_obj = self.renderer.create_model('/resources/models/'+heli_name+'/'+heli_name+'.obj',
+                                                          '/resources/shaders/'+heli_name+'_vertex.vs',
+                                                          '/resources/shaders/'+heli_name+'_frag.fs')
+        self.renderer.add_permanent_object_to_window(self.heli_obj)
 
         self._bGuiText = False
        
@@ -94,24 +94,24 @@ class Heli(gym.Env, EzPickle):
         mr_azimuth = self.heli_dyn.MR['OMEGA'] * self.time_counter 
         tr_azimuth = self.heli_dyn.TR['OMEGA'] * self.time_counter 
         
-        self.renderer.rotate_MR(self.heli_render_obj, 
+        self.renderer.rotate_MR(self.heli_obj, 
                                 self.heli_dyn.state['betas'][1],
                                 self.heli_dyn.state['betas'][0],
                                 pi_bound(mr_azimuth))
 
-        self.renderer.rotate_TR(self.heli_render_obj, 
+        self.renderer.rotate_TR(self.heli_obj, 
                                 0,
                                 pi_bound(tr_azimuth),
                                 0)
 
 
-        self.renderer.translate_model(self.heli_render_obj, 
+        self.renderer.translate_model(self.heli_obj, 
                                     self.heli_dyn.state['xyz'][0] * FT2MTR,
                                     self.heli_dyn.state['xyz'][1] * FT2MTR,
                                     self.heli_dyn.state['xyz'][2] * FT2MTR
                                     )
 
-        self.renderer.rotate_model(self.heli_render_obj, 
+        self.renderer.rotate_model(self.heli_obj, 
                                     self.heli_dyn.state['euler'][0],
                                     self.heli_dyn.state['euler'][1],
                                     self.heli_dyn.state['euler'][2]
@@ -152,9 +152,9 @@ class Heli(gym.Env, EzPickle):
         self.heli_dyn.state['betas'] = pi_bound(self.heli_dyn.state['betas'])
         self.heli_dyn.state['euler'] = pi_bound(self.heli_dyn.state['euler'])
 
-    def reset(self, **kwargs):
+    def reset(self):
         self.time_counter = 0
-        self.heli_dyn.reset(**kwargs)
+        self.heli_dyn.reset(self.trim_cond)
         if not self._bGuiText:
             self.__create_guiINFO_text()
             self.__add_to_guiText()
@@ -183,9 +183,10 @@ class Heli(gym.Env, EzPickle):
         raise NotImplementedError
 
 class HeliHover(Heli):
-    def __init__(self, yaml_path:str = None):
-        Heli.__init__(self, yaml_path=yaml_path)
+    def __init__(self, heli_name:str = "aw109"):
+        Heli.__init__(self, heli_name=heli_name)
         self.target_location = np.array([0,0,-self.heli_dyn.ENV['GR_ALT']-200])
+        self.trim_cond = {'yaw_rate': 0, 'ned_vel': np.zeros(3, dtype=np.float), 'gr_alt': 0.01}
 
     def _is_successed_step(self):
         return np.linalg.norm(self.heli_dyn.state['xyz'] - self.target_location) < (2*self.heli_dyn.MR['R'])
