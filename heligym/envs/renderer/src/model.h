@@ -9,7 +9,7 @@
 #include "mesh.h"
 //#include <glm/gtx/string_cast.hpp> // for string handling of glm.
 
-unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma = false);
+unsigned int TextureFromFile(const char *path, const std::string &directory);
 
 class Model 
 {
@@ -18,7 +18,6 @@ public:
     std::vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     std::vector<Mesh> meshes;
     std::string directory;
-    bool gammaCorrection;
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 base_model = glm::mat4(1.0f);
     glm::vec3 mainrotor = glm::vec3(0.0f);
@@ -32,11 +31,11 @@ public:
     // Constructor, expects a filepath to a 3D model.
     Model(std::string const &path, 
           std::string vertex_shader_file_path, 
-          std::string fragment_shader_file_path,
-          bool gamma = false);
+          std::string fragment_shader_file_path
+          );
 
     // Draws the model, and thus all its meshes
-    void draw(const glm::mat4 &projection_view, const glm::vec3 &camera_pos);
+    void draw();
     
     // Translate the model to `translation` points.
     void translate(glm::vec3 translation);

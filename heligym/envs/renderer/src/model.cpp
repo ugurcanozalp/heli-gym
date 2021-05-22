@@ -3,11 +3,30 @@
 
 Model::Model(std::string const &path, 
             std::string vertex_shader_file_path,
-            std::string fragment_shader_file_path,
-            bool gamma) : gammaCorrection(gamma)
+            std::string fragment_shader_file_path
+            )
 {
+    // Load model from path
     loadModel(path);
+
+    // Create shader from paths
     this->create_shader(vertex_shader_file_path, fragment_shader_file_path);
+
+    // Get unifrom Block Index from shader for UBObjects block
+    unsigned int uniformBlockIndex = glGetUniformBlockIndex(this->shader->ID, "UBObjects");
+    // Link shader's uniform block to uniform binding point
+    glUniformBlockBinding(this->shader->ID, uniformBlockIndex, 0);
+
+    // Get unifrom Block Index from shader for LightBlock block
+    unsigned int uniformLightBlockIndex = glGetUniformBlockIndex(this->shader->ID, "LightBlock");
+    // Link shader's uniform block to uniform binding point
+    glUniformBlockBinding(this->shader->ID, uniformLightBlockIndex, 1);
+
+    // Get unifrom Block Index from shader for LightBlock block
+    unsigned int uniformFogBlockIndex = glGetUniformBlockIndex(this->shader->ID, "FogBlock");
+    // Link shader's uniform block to uniform binding point
+    glUniformBlockBinding(this->shader->ID, uniformFogBlockIndex, 2);
+
 }
 
 void Model::create_shader(std::string vertex_shader_file_path, std::string fragment_shader_file_path)
@@ -17,21 +36,22 @@ void Model::create_shader(std::string vertex_shader_file_path, std::string fragm
 }
 
 
-void Model::draw(const glm::mat4& projection_view, const glm::vec3 &camera_pos)
+void Model::draw()
 {      
     // Use model's shader and set some uniforms.
     this->shader->use();
-    this->shader->setMat4("projection_view", projection_view);
-    this->shader->setVec3("camPos", camera_pos);
 
     this->shader->setVec3("mainrotor", this->mainrotor);
     this->shader->setVec3("tailrotor", this->tailrotor);
 
     this->shader->setMat4("model", this->model);
+    this->shader->setMat4("inversedTransposedModel", glm::inverseTranspose(this->model));
 
     // Draw meshs of the model.
-    for(unsigned int i = 0; i < meshes.size(); i++)
+    for (unsigned int i = 0; i < meshes.size(); i++)
+    {
         meshes[i].draw(*this->shader);
+    }
 
     this->model = this->base_model;
     this->shader->setMat4("model", this->model);
@@ -187,6 +207,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
         // 3. Normal maps
         std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+
         // 4. Height maps
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
@@ -234,7 +255,7 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType 
 }
 
 
-unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma)
+unsigned int TextureFromFile(const char *path, const std::string &directory)
 {
     std::string filename = std::string(path);
     filename = directory + '/' + filename;

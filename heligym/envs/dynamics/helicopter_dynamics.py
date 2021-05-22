@@ -62,7 +62,6 @@ class HelicopterDynamics(DynamicSystem):
     def reset(self, trim_cond):
         self.__init_states()
         self.trim(**trim_cond)
-        print("Helicopter is trimmed!")
 
     @property
     def MR(self):

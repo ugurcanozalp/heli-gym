@@ -1,4 +1,4 @@
-# Blender MTL File: 'untitled.blend'
+# Blender MTL File: 'None'
 # Material Count: 21
 
 newmtl Color_000
@@ -10,7 +10,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_000/doc_thumbnail.png
+map_Kd Color_000\\doc_thumbnail.png
 
 newmtl Color_004
 Ns 0.000000
@@ -21,7 +21,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_004/doc_thumbnail.png
+map_Kd Color_004\\doc_thumbnail.png
 
 newmtl Color_005
 Ns 0.000000
@@ -32,7 +32,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_005/doc_thumbnail.png
+map_Kd Color_005\\doc_thumbnail.png
 
 newmtl Color_006
 Ns 0.000000
@@ -43,7 +43,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_006/doc_thumbnail.png
+map_Kd Color_006\\doc_thumbnail.png
 
 newmtl Color_007
 Ns 0.000000
@@ -54,7 +54,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_007/doc_thumbnail.png
+map_Kd Color_007\\doc_thumbnail.png
 
 newmtl Color_008
 Ns 0.000000
@@ -65,7 +65,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_008/doc_thumbnail.png
+map_Kd Color_008\\doc_thumbnail.png
 
 newmtl Color_A08
 Ns 0.000000
@@ -76,7 +76,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 0.500000
 illum 9
-map_Kd Color A08/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_I03
 Ns 0.000000
@@ -87,7 +87,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color_I03/doc_thumbnail.png
+map_Kd Color_I03\\doc_thumbnail.png
 
 newmtl Color_I06
 Ns 0.000000
@@ -98,7 +98,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color I06/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_I07
 Ns 0.000000
@@ -109,7 +109,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color I07/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_L16
 Ns 0.000000
@@ -120,7 +120,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 0.730000
 illum 9
-map_Kd Color L16/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_M00
 Ns 0.000000
@@ -131,7 +131,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M00/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_M01
 Ns 0.000000
@@ -142,7 +142,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M01/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_M02
 Ns 0.000000
@@ -153,7 +153,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M02/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_M07
 Ns 0.000000
@@ -164,7 +164,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M07/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_M08
 Ns 0.000000
@@ -175,7 +175,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M08/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl Color_M09
 Ns 0.000000
@@ -186,7 +186,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M09/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
 newmtl FrontColor
 Ns 0.000000
@@ -197,18 +197,17 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd 01/doc_thumbnail.png
+map_Kd 01\\doc_thumbnail.png
 
-newmtl M_01
-Ns 0.000000
+newmtl M_01.002
+Ns 225.000000
 Ka 1.000000 1.000000 1.000000
-Kd 0.345098 0.345098 0.345098
-Ks 0.330000 0.330000 0.330000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd Color M01/doc_thumbnail.png
 
 newmtl Translucent_Glass_Blue
 Ns 0.000000
@@ -219,7 +218,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 0.780000
 illum 9
-map_kd Translucent_Glass_Blue/doc_thumbnail.png
+map_Kd Translucent_Glass_Blue\\doc_thumbnail.png
 
 newmtl _Color_A02_1
 Ns 0.000000
@@ -230,4 +229,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd _Color_A02_1/doc_thumbnail.png
+map_Kd _Color_A02_1\\doc_thumbnail.png

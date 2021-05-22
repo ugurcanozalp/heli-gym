@@ -39,6 +39,13 @@ private:
     float lastY = 0.0f;
     float yoffset = 0.0f;
     bool firstMouse = true;
+    unsigned int UBO; // uniform buffer objects for UBObjects
+    unsigned int LIGHT; // uniform buffer objects for LightBlocks
+    unsigned int FOG; // uniform buffer objects for FogBlocks
+    unsigned int depthMapFBO; // depth frame buffer for shadow
+    unsigned int depthMap; // depth texture
+    glm::vec4 light_position;
+
 
     // Drawable objects vectors. It stores object's pointer to call when they 
     // need to draw. 

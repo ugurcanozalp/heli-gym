@@ -60,8 +60,7 @@ Environment tested on these OSs. If you have any problem, probably shared librar
 make it, please look at [renderer page.](heligym/envs/renderer/README.md)
 
 Environment should be run at least 100 FPS for sync with the dynamics of helicopter.
-Receiving max FPS with NVIDIA 1070-TI in table for example. If system cannot reach 100 FPS, 
-please make sure that GPU driver be installed.
+Receiving max FPS with NVIDIA 1070-TI with Intel i7-8700K given in the table. Limiting factor of FPS is CPU because of calculation of dynamics of helicopter in Python. If system cannot reach 100 FPS, please make sure that GPU driver be installed and make sure that CPU can handle with the Python.
 
 | Tested OS      |  Max FPS |
 |----------------|----------|

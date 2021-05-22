@@ -38,19 +38,19 @@ class Heli(gym.Env, EzPickle):
         
         self.renderer = Renderer(w=1024, h=768, title='heligym')
         self.renderer.set_fps(FPS)
-     
-        self.terrain = self.renderer.create_model('/resources/models/terrain/terrain.obj',
-                                                 '/resources/shaders/vertex.vs',
-                                                 '/resources/shaders/frag.fs')
-        self.renderer.add_permanent_object_to_window(self.terrain)
-
-        self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
-        self.renderer.add_permanent_object_to_window(self.sky)
 
         self.heli_obj = self.renderer.create_model('/resources/models/'+heli_name+'/'+heli_name+'.obj',
                                                           '/resources/shaders/'+heli_name+'_vertex.vs',
                                                           '/resources/shaders/'+heli_name+'_frag.fs')
         self.renderer.add_permanent_object_to_window(self.heli_obj)
+     
+        self.terrain = self.renderer.create_model('/resources/models/terrain/terrain.obj',
+                                                 '/resources/shaders/terrain_vertex.vs',
+                                                 '/resources/shaders/terrain_frag.fs')
+        self.renderer.add_permanent_object_to_window(self.terrain)        
+
+        self.sky = self.renderer.create_model('/resources/models/sky/sky.obj')
+        self.renderer.add_permanent_object_to_window(self.sky)
 
         self._bGuiText = False
        
@@ -118,8 +118,8 @@ class Heli(gym.Env, EzPickle):
                                     )
 
         self.renderer.set_camera_pos(self.heli_dyn.state['xyz'][0] * FT2MTR,
-                                    self.heli_dyn.state['xyz'][1] * FT2MTR + 30,
-                                    self.heli_dyn.state['xyz'][2] * FT2MTR )
+                                     self.heli_dyn.state['xyz'][1] * FT2MTR + 30,
+                                     self.heli_dyn.state['xyz'][2] * FT2MTR )
 
 
         if not self.renderer.is_visible():

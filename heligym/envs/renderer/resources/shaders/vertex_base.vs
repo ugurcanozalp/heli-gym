@@ -6,7 +6,12 @@ layout (location = 2) in vec2 aTexCoords;
 out vec2 TexCoords;
 
 uniform mat4 model;
-uniform mat4 projection_view;
+
+layout (std140) uniform UBObjects
+{
+    mat4 projection_view;
+    vec3 camPos;
+};
 
 void main()
 {

@@ -10,7 +10,8 @@ Window::Window(const unsigned int SCR_WIDTH,
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
+    //glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     // Handle for Apple.
     #ifdef __APPLE__
@@ -30,6 +31,9 @@ Window::Window(const unsigned int SCR_WIDTH,
     // Set the context.
     glfwMakeContextCurrent(this->window);
 
+    // To close off the v-sync, set swap interwal of glfw.
+    glfwSwapInterval(0);
+
     // Initialize GLAD.
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -41,6 +45,7 @@ Window::Window(const unsigned int SCR_WIDTH,
     glEnable(GL_BLEND);  
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);  
+    glEnable(GL_MULTISAMPLE);
 
     // Create camera.
     this->camera = new Camera(glm::vec3(5.415f, 0.2f, 30.0f),
@@ -69,6 +74,53 @@ Window::Window(const unsigned int SCR_WIDTH,
     // Add first item of guiOBS as FPS.
     this->add_item_to_guiText(&this->guiOBS, "FPS : %3.f", &this->FPS);
 
+    // Create Uniform Buffer Object to reduce need memory in GPU
+
+    // for UBObject block
+    glGenBuffers(1, &this->UBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, this->UBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) + sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    // define the range of the buffer that links to a uniform binding point which is 0 for UBObjects block
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->UBO, 0, sizeof(glm::mat4) + sizeof(glm::vec3)); 
+
+    // for LightBlock block
+    glGenBuffers(1, &this->LIGHT);
+    glBindBuffer(GL_UNIFORM_BUFFER, this->LIGHT);
+    glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    // define the range of the buffer that links to a uniform binding point which is 1 for LightBlock block
+    glBindBufferRange(GL_UNIFORM_BUFFER, 1, this->LIGHT, 0, 4 * sizeof(glm::vec3));
+
+    // use vec4 for handling std140 format for uniform buffer objects
+    this->light_position = glm::vec4(0.0f, 1500.0f, 0.0f, 0.0f);
+    glm::vec4 light_ambient = glm::vec4(0.8f, 0.8f, 0.8f, 0.0f);
+    glm::vec4 light_diffuse = glm::vec4(255.0 / 255.0f, 241.0 / 255.0f, 242.0 / 255.0f, 0.0f);
+    glm::vec4 light_specular = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, this->LIGHT);
+    glBufferSubData(GL_UNIFORM_BUFFER,                     0, sizeof(glm::vec4), glm::value_ptr(this->light_position));
+    glBufferSubData(GL_UNIFORM_BUFFER,     sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(light_ambient));
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(light_diffuse));
+    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(light_specular));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    // for FogBlock block
+    glGenBuffers(1, &this->FOG);
+    glBindBuffer(GL_UNIFORM_BUFFER, this->FOG);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::vec4), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    // define the range of the buffer that links to a uniform binding point which is 2 for FogBlock block
+    glBindBufferRange(GL_UNIFORM_BUFFER, 2, this->FOG, 0, 2 * sizeof(glm::vec4));
+
+    glm::vec4 fog_color = glm::vec4(0.74f, 0.35f, 0.51f, 0.4f);
+    glm::vec4 density_grad = glm::vec4(0.002f, 5.0f, 0.0, 0.0); // density & grad in first 2 elements, other for padding
+   
+    glBindBuffer(GL_UNIFORM_BUFFER, this->FOG);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4), glm::value_ptr(fog_color));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(density_grad));
+    
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 
@@ -86,16 +138,26 @@ void Window::render()
         // Camera/view transformation.
         glm::mat4 view = this->camera->GetViewMatrix();
         this->projection_view = projection * view;
-        
+
+        // Set project_view as Uniform Buffer Objects 
+        glBindBuffer(GL_UNIFORM_BUFFER, this->UBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(this->projection_view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        // Set camera position as Uniform Buffer Objects
+        glBindBuffer(GL_UNIFORM_BUFFER, this->UBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(this->camera->Position));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
         // Draw objects.
         this->draw();     
-    
+        
         // Render gui.
         this->renderGUI();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        // To close off the v-sync, we used glFlush instead of double buffers.
-        glFlush();
+        
+        // Swap buffer to render the context
+        glfwSwapBuffers(this->window);
 
         // Poll OpenGL events.
         glfwPollEvents();        
@@ -261,12 +323,12 @@ void Window::draw()
 {
 	for (int i = 0; i < this->permanent_drawables.size(); i++)
 	{
-		this->permanent_drawables[i]->draw(this->projection_view, this->camera->Position);
+		this->permanent_drawables[i]->draw();
 	}
 
 	for (int i = 0; i < this->instantaneous_drawables.size(); i++)
 	{
-		this->instantaneous_drawables[i]->draw(this->projection_view, this->camera->Position);
+		this->instantaneous_drawables[i]->draw();
 	}
 	this->instantaneous_drawables.clear();
 }

@@ -15,10 +15,10 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 void Mesh::draw(Shader &shader) 
 {
     // Bind appropriate textures.
-    unsigned int diffuseNr  = 1;
-    unsigned int specularNr = 1;
-    unsigned int normalNr   = 1;
-    unsigned int heightNr   = 1;
+    unsigned int diffuseNr  = 0;
+    unsigned int specularNr = 0;
+    unsigned int normalNr   = 0;
+    unsigned int heightNr   = 0;
     for(unsigned int i = 0; i < textures.size(); i++)
     {
         glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
@@ -31,7 +31,7 @@ void Mesh::draw(Shader &shader)
             number = std::to_string(specularNr++); // transfer unsigned int to stream
         else if(name == "texture_normal")
             number = std::to_string(normalNr++); // transfer unsigned int to stream
-            else if(name == "texture_height")
+        else if(name == "texture_height")
             number = std::to_string(heightNr++); // transfer unsigned int to stream
 
         // Set the sampler to the correct texture unit
