@@ -28,7 +28,7 @@ class Heli(gym.Env, EzPickle):
     def __init__(self, heli_name:str = "aw109"):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
-        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT, os.environ['HELIGYM_RESOURCE_DIR'] + '/models/terrain/hmap.npy')
+        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.max_time = 30 # seconds

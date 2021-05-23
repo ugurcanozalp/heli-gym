@@ -98,10 +98,10 @@ The rest is usual as of any GYM environment !
 
 To do list, ordered according to importance order.
 - [ ] Fix rotor rotation rendering problem
-- [ ] Make terrain height map input generic
+- [x] Make terrain height map input generic
 - [ ] Place all helicopter related resources into single folder
 - [ ] Add turbulence model (probably Dryden Turbulence Model)
-- [ ] Add transmission model
+- [ ] Add actuator model
 - [ ] Convert all dynamics related scripts into C++ code with Python api.
 
 To do list for Reinforcement Learning tasks.

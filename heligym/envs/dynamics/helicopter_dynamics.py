@@ -3,6 +3,7 @@ import sys, math
 import numpy as np
 import os
 import copy
+import imageio
 
 from .kinematic import euler_to_rotmat, pqr_to_eulerdot_mat
 from .dynamics import DynamicSystem, State
@@ -22,14 +23,14 @@ class HelicopterDynamics(DynamicSystem):
     
     _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "aw109.yaml")
     @classmethod
-    def init_yaml(cls, yaml_path: str = None, dt=0.01, hmap = None):
+    def init_yaml(cls, yaml_path: str = None, dt=0.01):
         yaml_path = cls._default_yaml if yaml_path is None else yaml_path
         with open(yaml_path) as foo:
             params = yaml.safe_load(foo)
 
-        return cls(params, dt, hmap)
+        return cls(params, dt)
 
-    def __init__(self, params, dt, hmap):
+    def __init__(self, params, dt):
         super(HelicopterDynamics, self).__init__(dt)
         self.HELI = params['HELI']
         self.ENV = params['ENV']
@@ -37,8 +38,12 @@ class HelicopterDynamics(DynamicSystem):
         self.__precalculations()
         self.set_wind() # wind velocity in earth frame:
         self.__register_states()
-        self.hmap = np.load(hmap)
-
+        hmap_img = imageio.imread(os.environ['HELIGYM_RESOURCE_DIR'] + self.ENV["HMAP_PATH"])
+        hmap_img = hmap_img/np.iinfo(hmap_img.dtype).max
+        normal_img = imageio.imread(os.environ['HELIGYM_RESOURCE_DIR'] + self.ENV["NMAP_PATH"])
+        normal_img = normal_img/np.iinfo(normal_img.dtype).max
+        self.terrain_hmap = hmap_img*self.ENV["MAX_GR_ALT"]
+        self.terrain_normal = normal_img/np.sqrt((normal_img**2+EPS).sum(axis=-1, keepdims=True))
         self.default_trim_cond = {
             "yaw": 0.0,
             "yaw_rate": 0.0,
@@ -150,22 +155,21 @@ class HelicopterDynamics(DynamicSystem):
         return temp, rho
 
     def __get_ground_height_from_hmap(self):
-        x_ = 2000.0 / self.hmap[0] # terrain x size per pixel
-        y_ = 2000.0 / self.hmap[1] # terrain y size per pixel
+        x_ = self.ENV["NS_MAX"] / self.terrain_hmap.shape[0] # terrain x size per pixel
+        y_ = self.ENV["EW_MAX"] / self.terrain_hmap.shape[1] # terrain y size per pixel
 
-        x_loc = self.state['xyz'][0] * FT2MTR / x_ + 512
-        y_loc = self.state['xyz'][1] * FT2MTR / y_ + 512
+        x_loc = self.state['xyz'][0] / x_ + self.terrain_hmap.shape[0] // 2
+        y_loc = self.state['xyz'][1] / y_ + self.terrain_hmap.shape[1] // 2
 
         x_ind =  math.floor(x_loc)
         y_ind =  math.floor(y_loc)
 
-        middle = self.hmap[ y_ind * int(self.hmap[1]) + x_ind + 2 ]
-        north = self.hmap[ y_ind * int(self.hmap[1]) + (x_ind + 1) + 2 ]
-        east = self.hmap[ (y_ind + 1) * int(self.hmap[1]) + x_ind + 2 ]
+        middle = self.terrain_hmap[x_ind, y_ind]
+        north = self.terrain_hmap[x_ind+1, y_ind]
+        east = self.terrain_hmap[x_ind, y_ind+1]
 
         height = middle + (north - middle) * (x_loc - x_ind) + (east - middle) * (y_loc - y_ind)
-        
-        return height * 1.0 / FT2MTR
+        return height
 
     def _does_hit_ground(self, altitude):
         #print(altitude, -self.state['xyz'][2], - self.state['xyz'][2] * FT2MTR)

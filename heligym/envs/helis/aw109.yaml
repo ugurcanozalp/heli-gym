@@ -7,6 +7,11 @@ ENV:
     RO_SEA      : 0.0023769 # [slug/ft^3] Air density at sea level
     GRAV        : 32.2 # [ft/sec^2] Gravitional Acceleration
     GR_ALT      : 0.0 # [ft] Ground altitude
+    MAX_GR_ALT  : 8809.0551 # [ft] Maximum altitude of terrain map
+    NS_MAX      : 6561.6798 # [ft] Span of terrain in north-south axis
+    EW_MAX      : 6561.6798 # [ft] Span of terrain in east-west axis
+    HMAP_PATH   : "/models/terrain/terrain_hmap.png"
+    NMAP_PATH   : "/models/terrain/terrain_normal.png"
 
 HELI:
     HP_LOSS     : 90    # [hp] Accessory Power loss (probably)
