@@ -34,7 +34,15 @@ class Heli(gym.Env, EzPickle):
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
-        self.trim_cond = {'yaw_rate': 0, 'ned_vel': np.zeros(3, dtype=np.float), 'gr_alt': 100}
+        self.trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 100.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
         
         self.renderer = Renderer(w=1024, h=768, title='heligym')
         self.renderer.set_fps(FPS)
@@ -87,21 +95,15 @@ class Heli(gym.Env, EzPickle):
         val = np.append(val, np.array([0.3, 0.2]))
 
         self.renderer.set_guiOBS(self.guiINFO_text, val)
-
-        def pi_bound(x):
-            return (x + np.pi) % (2 * np.pi) - np.pi
-
-        mr_azimuth = self.heli_dyn.MR['OMEGA'] * self.time_counter 
-        tr_azimuth = self.heli_dyn.TR['OMEGA'] * self.time_counter 
         
         self.renderer.rotate_MR(self.heli_obj, 
                                 self.heli_dyn.state['betas'][1],
                                 self.heli_dyn.state['betas'][0],
-                                pi_bound(mr_azimuth))
+                                self.heli_dyn.state['psi_mr'][0])
 
         self.renderer.rotate_TR(self.heli_obj, 
                                 0,
-                                pi_bound(tr_azimuth),
+                                self.heli_dyn.state['psi_tr'][0],
                                 0)
 
 
@@ -140,17 +142,9 @@ class Heli(gym.Env, EzPickle):
         observation = self.heli_dyn._get_observation()
         reward = self._calculate_reward()
         info = self._get_info()
-        done = info['failed'] or info['successed'] or (self.time_counter > self.max_time)
+        done = info['failed'] or info['successed'] or info['time_up']
         self.successed_time = self.successed_time + DT if info['successed_step'] else 0
-        self.step_end()
         return observation, reward, done, info
-
-    def step_end(self):
-        def pi_bound(x):
-            return (x + np.pi) % (2 * np.pi) - np.pi
-
-        self.heli_dyn.state['betas'] = pi_bound(self.heli_dyn.state['betas'])
-        self.heli_dyn.state['euler'] = pi_bound(self.heli_dyn.state['euler'])
 
     def reset(self):
         self.time_counter = 0
@@ -162,10 +156,12 @@ class Heli(gym.Env, EzPickle):
         return self.heli_dyn._get_observation()      
 
     def _get_info(self):
-        return {'failed': self._is_failed(), 'successed': self._is_successed(), 'successed_step': self._is_successed_step()}
-
-    def _is_successed(self):
-        return self.successed_time >= self.success_duration  
+        return {
+            'failed': self._is_failed(), 
+            'successed': self._is_successed(), 
+            'successed_step': self._is_successed_step(),
+            'time_up': self._is_time_up()
+            }
 
     def _is_failed(self):
         cond1 = self.heli_dyn._does_hit_ground(-self.heli_dyn.state['xyz'][2])
@@ -175,6 +171,12 @@ class Heli(gym.Env, EzPickle):
         cond5 = np.abs(self.heli_dyn.state['xyz'][0]) > 5000 or np.abs(self.heli_dyn.state['xyz'][1]) > 5000 or -self.heli_dyn.state['xyz'][2] > self.heli_dyn.ENV['GR_ALT'] + 10000
         cond = (cond1 and (cond2 or cond3 or cond4)) or cond5
         return cond
+
+    def _is_successed(self):
+        return self.successed_time >= self.success_duration  
+
+    def _is_time_up(self):
+        return self.time_counter > self.max_time
 
     def _is_successed_step(self):
         raise NotImplementedError
@@ -186,7 +188,15 @@ class HeliHover(Heli):
     def __init__(self, heli_name:str = "aw109"):
         Heli.__init__(self, heli_name=heli_name)
         self.target_location = np.array([0,0,-self.heli_dyn.ENV['GR_ALT']-200])
-        self.trim_cond = {'yaw_rate': 0, 'ned_vel': np.zeros(3, dtype=np.float), 'gr_alt': 0.01}
+        self.trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 0.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
 
     def _is_successed_step(self):
         return np.linalg.norm(self.heli_dyn.state['xyz'] - self.target_location) < (2*self.heli_dyn.MR['R'])

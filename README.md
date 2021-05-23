@@ -93,3 +93,23 @@ env = gym.make("HeliHover-v0")
 ```
 
 The rest is usual as of any GYM environment !
+
+## __TODO List__
+
+To do list, ordered according to importance order.
+- [ ] Fix rotor rotation rendering problem
+- [ ] Make terrain height map input generic
+- [ ] Place all helicopter related resources into single folder
+- [ ] Add turbulence model (probably Dryden Turbulence Model)
+- [ ] Add transmission model
+- [ ] Convert all dynamics related scripts into C++ code with Python api.
+
+To do list for Reinforcement Learning tasks.
+- Read http://avstop.com/ac/basichelicopterhandbook/ch11.html
+- [x] Add **hover** task
+- [ ] Add **forward flight** task
+- [ ] Add **turning flight** task
+- [ ] Add **take-off** task
+- [ ] Add **landing** task
+- [ ] Add **slalom maneuver** task
+- [ ] Add **piroutte maneuver** task

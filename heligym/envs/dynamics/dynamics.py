@@ -100,7 +100,8 @@ class DynamicSystem(object):
             assert False, "given state name not found!"
         
     def step(self, action):
-        # Solve system by RK4 a single step.
+        """This function lets the system to go one time step ahead using RK4.
+        """
         k1 = self.dynamics(self.state, action)
         k2 = self.dynamics(self.state + k1 * (0.5*self.dt), action)
         k3 = self.dynamics(self.state + k2 * (0.5*self.dt), action)
@@ -108,6 +109,7 @@ class DynamicSystem(object):
         self.state += (k1 + k2*2 + k3*2 + k4)*(1/6 * self.dt)
         self.state_dots = k4
         self.last_action = action
+        self.step_end()
         # Solve system by Implicit Trapezoidal Rule a singel step.
         #a = self.dynamics(self.state, action)
         #next_state = a*self.dt
@@ -120,7 +122,14 @@ class DynamicSystem(object):
         #self.last_action = action
 
     def _get_observation(self):
+        """Getter function for observations
+        """
         return self.observation
+
+    def step_end(self):
+        """This method should be overwritten by inherited classes.
+        """
+        pass
 
     def trim(self):
         raise NotImplementedError

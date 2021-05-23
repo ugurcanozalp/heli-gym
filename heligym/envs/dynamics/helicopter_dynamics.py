@@ -6,6 +6,7 @@ import copy
 
 from .kinematic import euler_to_rotmat, pqr_to_eulerdot_mat
 from .dynamics import DynamicSystem, State
+from .utils import pi_bound
 
 FTS2KNOT    = 0.5924838 # ft/s to knots conversion
 EPS         = 1e-4 # small value for divison by zero
@@ -36,32 +37,39 @@ class HelicopterDynamics(DynamicSystem):
         self.__precalculations()
         self.set_wind() # wind velocity in earth frame:
         self.__register_states()
-
         self.hmap = np.load(hmap)
+
+        self.default_trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 100.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
 
     def __register_states(self):
         self._register_state('vi_mr', np.zeros(1, dtype=np.float))
         self._register_state('vi_tr', np.zeros(1, dtype=np.float))
+        self._register_state('psi_mr', np.zeros(1, dtype=np.float))
+        self._register_state('psi_tr', np.zeros(1, dtype=np.float))
         self._register_state('betas', np.zeros(2, dtype=np.float))
         self._register_state('uvw', np.zeros(3, dtype=np.float))
         self._register_state('pqr', np.zeros(3, dtype=np.float))
         self._register_state('euler', np.zeros(3, dtype=np.float))
         self._register_state('xyz', np.zeros(3, dtype=np.float))
-
-    def __init_states(self):
-        self.state['vi_mr'] = np.array([30.0])
-        self.state['vi_tr'] = np.array([40.0])
-        self.state['betas'] = np.array([0.0, 0.0])
-        self.state['uvw'] = np.array([0.0, 0.0, 0.0])
-        self.state['pqr'] = np.array([0.0, 0.0, 0.0])
-        self.state['euler'] = np.array([0.0, 0.0, 0.0])
-        cg_from_bottom = -self._ground_touching_altitude()
-        self.state['xyz'] = np.array([0.0, 0.0, cg_from_bottom - 100]) 
-        self.last_action = np.zeros(4)  
               
-    def reset(self, trim_cond):
-        self.__init_states()
-        self.trim(**trim_cond)
+    def reset(self, trim_cond={}):
+        input_trim_cond = copy.deepcopy(self.default_trim_cond)
+        input_trim_cond.update(trim_cond)
+        self.trim(input_trim_cond)
+
+    def step_end(self):
+        self.state['psi_mr'] = pi_bound(self.state['psi_mr'])
+        self.state['psi_tr'] = pi_bound(self.state['psi_tr'])
+        self.state['betas'] = pi_bound(self.state['betas'])
+        self.state['euler'] = pi_bound(self.state['euler'])
 
     @property
     def MR(self):
@@ -166,7 +174,7 @@ class HelicopterDynamics(DynamicSystem):
     def _ground_touching_altitude(self):
         return self.__get_ground_height_from_hmap() + self.HELI['WL_CG']/12 # divide by 12 to make inch to feet
 
-    def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr):
+    def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr, psi_mr):
         """Calculate Forces and Moments caused by Main Rotor
         ans Main Rotor Dynamics
         """
@@ -184,12 +192,11 @@ class HelicopterDynamics(DynamicSystem):
         # cross(off-axis)flapping stiffness [rad/sec2]
         DL_DA1 = rho*self.MR['DL_DA1_DRO']
 
-        ## MR Force Moments
+        ## MR Force Moments and inflow dynamics.
         v_adv_2 = uvw_air[0]**2+uvw_air[1]**2
         wr = uvw_air[2] + (betas[0]-self.MR['IS'])*uvw_air[0] - betas[1]*uvw_air[1] # z-axis vel re rotor plane
         wb = wr + 2/3*self.MR['V_TIP']*(coll+0.75*self.MR['TWST']) + \
             v_adv_2/self.MR['V_TIP']*(coll+0.5*self.MR['TWST']) # z-axis vel re blade (equivalent)
-        
         
         thrust_mr = (wb - vi_mr[0]) * rho*self.MR['COEF_TH']/4
         vi_mr_dot = np.zeros(1)
@@ -219,7 +226,11 @@ class HelicopterDynamics(DynamicSystem):
         betas_dot[0] = -ITB*b_sum-ITB2_OM*a_sum-pqr[1]
         betas_dot[1] = -ITB*a_sum+ITB2_OM*b_sum-pqr[0]
 
-        ## Compute main rotor force and moment components
+        ### Transmission dynamics of MR
+        psi_mr_dot = np.zeros(1)
+        psi_mr_dot[0] = self.MR['OMEGA']
+
+        ### Compute main rotor force and moment components
         X_MR=-thrust_mr*(betas[0]-self.MR['IS'])
         Y_MR=thrust_mr*betas[1]
         Z_MR=-thrust_mr
@@ -229,11 +240,13 @@ class HelicopterDynamics(DynamicSystem):
 
         force_mr = np.array([X_MR,Y_MR,Z_MR])
         moment_mr = np.array([L_MR, M_MR, N_MR])
-        return force_mr, moment_mr, power_mr, vi_mr_dot, betas_dot
+        return force_mr, moment_mr, power_mr, betas_dot, vi_mr_dot, psi_mr_dot
 
-    def _calc_tr_fm(self, rho, pedal, uvw_air, pqr, vi_tr):
+    def _calc_tr_fm(self, rho, pedal, uvw_air, pqr, vi_tr, psi_tr):
         """Calculate Forces and Moments caused by Tail Rotor
         """
+
+        ## TR Force Moments and inflow dynamics.
         v_adv_2 = (uvw_air[2]+pqr[1]*self.TR['D'])**2 + uvw_air[0]**2
         vr = -(uvw_air[1] - pqr[2]*self.TR['D'] + pqr[0]*self.TR['H']) # vel re rotor plane
         vb = vr + 2/3*self.TR['V_TIP']*(pedal+0.75*self.TR['TWST']) + \
@@ -244,15 +257,20 @@ class HelicopterDynamics(DynamicSystem):
         vi_tr_dot[0] = math.pi*3/4/self.TR['R']*(thrust_tr/(2*math.pi*rho*self.TR['R']**2) - vi_tr[0]*np.sqrt(v_adv_2+(vr-vi_tr[0])**2))
         vi_tr_dot[0] *= 0.5 # slow down inflow dynamics due to numerical unstability.
 
+        ### Transmission dynamics of TR
+        psi_tr_dot = np.zeros(1)
+        psi_tr_dot[0] = self.TR['OMEGA']
+
         power_tr = thrust_tr*(vi_tr[0]-vr)
         # torque=power_tr/self.TR['OMEGA'];
-        ## Compute tail rotor force and moment components
+
+        ### Compute tail rotor force and moment components
         Y_TR=thrust_tr
         L_TR=Y_TR*self.TR['H']
         N_TR=-Y_TR*self.TR['D']
         force_tr = np.array([0,Y_TR,0])
         moment_tr = np.array([L_TR, 0, N_TR])
-        return force_tr, moment_tr, power_tr, vi_tr_dot
+        return force_tr, moment_tr, power_tr, vi_tr_dot, psi_tr_dot
 
     def _calc_fus_fm(self, rho, uvw_air, vi_mr):
         """Calculate Forces and Moments caused by Fuselage
@@ -338,6 +356,8 @@ class HelicopterDynamics(DynamicSystem):
         #
         vi_mr = state['vi_mr']
         vi_tr = state['vi_tr']
+        psi_mr = state['psi_mr']
+        psi_tr = state['psi_tr']
         betas = state['betas']
         uvw = state['uvw']
         pqr = state['pqr']
@@ -372,8 +392,8 @@ class HelicopterDynamics(DynamicSystem):
         ### Atmosphere calculations
         temperature, rho = self._altitude_to_air_properties(-xyz[2])
         ### Main Rotor
-        force_mr, moment_mr, power_mr, vi_mr_dot, betas_dot = self._calc_mr_fm(rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr)
-        force_tr, moment_tr, power_tr, vi_tr_dot = self._calc_tr_fm(rho, pedal, uvw_air, pqr, vi_tr)
+        force_mr, moment_mr, power_mr, betas_dot, vi_mr_dot, psi_mr_dot = self._calc_mr_fm(rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr, psi_mr)
+        force_tr, moment_tr, power_tr, vi_tr_dot, psi_tr_dot = self._calc_tr_fm(rho, pedal, uvw_air, pqr, vi_tr, psi_tr)
         force_fus, moment_fus, power_fus = self._calc_fus_fm(rho, uvw_air, vi_mr)
         force_ht, moment_ht = self._calc_ht_fm(rho, uvw_air, pqr, vi_mr)
         force_vt, moment_vt = self._calc_vt_fm(rho, uvw_air, pqr, vi_tr)
@@ -386,7 +406,6 @@ class HelicopterDynamics(DynamicSystem):
 
         power_total = power_mr + power_tr + power_extra_mr + 550*self.HELI['HP_LOSS'] 
         
-
         force_gravity = earth2body@np.array([0,0,self.HELI['WT']])
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
         moment_total = moment_mr + moment_tr + moment_fus + moment_ht + moment_vt + moment_wn
@@ -409,6 +428,8 @@ class HelicopterDynamics(DynamicSystem):
         ### State derivatives
         state_dots['vi_mr'] = vi_mr_dot
         state_dots['vi_tr'] = vi_tr_dot
+        state_dots['psi_mr'] = psi_mr_dot
+        state_dots['psi_tr'] = psi_tr_dot
         state_dots['betas'] = betas_dot
         state_dots['uvw'] = uvw_dot
         state_dots['pqr'] = pqr_dot
@@ -435,17 +456,28 @@ class HelicopterDynamics(DynamicSystem):
 
         return state_dots
 
-    def trim(self, yaw_rate=0, ned_vel=np.zeros(3, dtype=np.float), gr_alt=100, xy=np.zeros(2)):
-        """
-        Trim code.
+    def trim(self, params):
+        """This function trims the helicopter given the parameters.
         If necessary, user can specify velocity of helicopter in earth frame along with
-        yaw_rate which should be deg/sec.
+        yaw_rate which should be deg/sec. Other parameters like rotor azimuths, yaw angle and 
+        north east locations and ground altitude can also be specified.
         """
+        # First, fix some parameters which are not iterated through trim algorithm.
+        # However, these parameters will affect the trim.
+        self.state['euler'][-1] = params["yaw"]
+        self.state['psi_mr'][0] = params["psi_mr"]
+        self.state['psi_tr'][0] = params["psi_tr"]
+        cg_from_bottom = -self._ground_touching_altitude()
+        self.state['xyz'][0] = params["xy"][0]
+        self.state['xyz'][1] = params["xy"][1]
+        self.state['xyz'][2] = cg_from_bottom-params["gr_alt"]
+        self.last_action = np.zeros(4)  
+
         n_vars = 16
         y_target = np.zeros(n_vars, dtype=np.float)
-        y_target[-4] = D2R*yaw_rate
-        y_target[-3:] = ned_vel/self.MR['R']
-        uvw0 = ned_vel/self.MR['V_TIP']
+        y_target[-4] = params['yaw_rate']
+        y_target[-3:] = np.array(params['ned_vel'], dtype=np.float)/self.MR['R']
+        uvw0 = np.array(params['ned_vel'], dtype=np.float)/self.MR['V_TIP']
         x = np.array([0.05, 0.05, 0, 0, # vi_mr, vi_tr, betas
             uvw0[-3], uvw0[-2], uvw0[-1], # uvw
             0, 0, y_target[-4], # pqr
@@ -463,10 +495,11 @@ class HelicopterDynamics(DynamicSystem):
                 dydx.append(dydxi)
 
             dydx = np.stack(dydx, axis=-1)
-            x = x - 0.2*np.linalg.inv(dydx)@(y-y_target)
+            x = x - 0.2*np.linalg.inv(dydx)@(y-y_target) # decrease step by multiplying 0.2 to guarantee convergence.
             y = self.__trim_fcn(x)
             tol = (y-y_target).transpose()@(y-y_target)
 
+        # Finalize the trim algorithm by assigning solved states to the system.
         self.state['vi_mr'] = x[0:1]*self.MR['V_TIP']
         self.state['vi_tr'] = x[1:2]*self.TR['V_TIP']
         self.state['betas'] = x[2:4]
@@ -497,5 +530,3 @@ class HelicopterDynamics(DynamicSystem):
                             state_dots['xyz']/self.MR['R']])
 
         return y
-
-
