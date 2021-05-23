@@ -245,20 +245,20 @@ lib.rotate_MR.argtypes = [ctypes.c_void_p, ctypes.c_float,
                                 ctypes.c_float, ctypes.c_float]
 lib.rotate_MR.restype = ctypes.c_void_p
 
-def rotate_MR(model, phi, theta, psi):
+def rotate_MR(model, x, y, z):
     """
         Rotate the model Main Rotor with each angle which are in radians.
     """
-    lib.rotate_MR(model, phi, theta, psi)
+    lib.rotate_MR(model, x, y, z)
 
 ###################################################################################
 lib.rotate_TR.argtypes = [ctypes.c_void_p, ctypes.c_float, 
                                 ctypes.c_float, ctypes.c_float]
 lib.rotate_TR.restype = ctypes.c_void_p
 
-def rotate_TR(model, phi, theta, psi):
+def rotate_TR(model, x, y, z):
     """
         Rotate the model Tail Rotor with each angle which are in radians.
     """
-    lib.rotate_TR(model, phi, theta, psi)
+    lib.rotate_TR(model, x, y, z)
 

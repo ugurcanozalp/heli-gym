@@ -107,7 +107,7 @@ class Renderer(object):
         # In Body-frame Y-axis is perpendicular to X-axis and Z-axis is cross
         # product of the axes. On the other hand, in OpenGL (or Computer Graphics)
         # Z-axis is Y-axis is altered. 
-        pyapi.rotate_MR(model, phi, -psi, theta)    
+        pyapi.rotate_MR(model, phi, theta, psi)    
 
     def rotate_TR(self, model, phi, theta, psi):
         """
@@ -116,7 +116,7 @@ class Renderer(object):
         # In Body-frame Y-axis is perpendicular to X-axis and Z-axis is cross
         # product of the axes. On the other hand, in OpenGL (or Computer Graphics)
         # Z-axis is Y-axis is altered. 
-        pyapi.rotate_TR(model, phi, -psi, theta)    
+        pyapi.rotate_TR(model, phi, theta, psi)    
 
     def get_fps(self):
         """

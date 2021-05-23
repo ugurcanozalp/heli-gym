@@ -30,9 +30,9 @@ float sy = sin(r.y);
 float cz = cos(r.z);
 float sz = sin(r.z);
 
-return mat3(cy * cz, 	                cy * sz, 	                -sy,
-			-cy * sz + sx * sy * cz,	cx * cz + sx * sy * sz,		sx * cy,
-			sx * sz + cx * sy * cz,		-sx * cz + cx * sy * sz,	cx * cy);				   
+return mat3(cz * cy, 	                cz * sy, 	                         sz,
+			-cz * sy + sx * -sz * cy,	cx * cy + sx * -sz * sy,		sx * cz,
+			sx * sy + cx * -sz * cy,		-sx * cy + cx * -sz * sy,	cx * cz);				   
 }
 
 uniform vec3 mainrotor;
@@ -47,11 +47,13 @@ void main()
     vec3 pos = aPos;
 
     // main rotor blade rotation
-    if ((pos.y > 1.23 && pos.x > -5.2) || (pos.y > 1.1 && pos.x > 3.2))
+    if ((pos.y > 1.24 && pos.x > -4.62) || (pos.y > 1.1 && pos.x > 1.65))
     {
-        pos.x -= 0.19111;
+        pos.x -= 0.222994;
+        pos = rotationMatrixXYZ(vec3(1.2086,  0.0, 3.0959) * 3.141592 / 180) * pos;
         pos = rotationMatrixXYZ(mainrotor) * pos;
-        pos.x += 0.19111;
+        pos = rotationMatrixXYZ(vec3(-1.2086, 0.0, -3.0959) * 3.141592 / 180) * pos;
+        pos.x += 0.222994;
     }
     
     // tail rotor blade rotation
