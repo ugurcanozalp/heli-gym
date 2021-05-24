@@ -30,9 +30,9 @@ float sy = sin(r.y);
 float cz = cos(r.z);
 float sz = sin(r.z);
 
-return mat3(cy * cz                ,    sz          ,  -sy*cz,
-			sx * sy - sz * cz * cy ,    cx * cz     ,	sx * cy + sy * sz * cx,
-			sx * sz * cy + sy * cx ,    -sx * cz    ,	- sx * sy * sz + cx * cy);				   
+return mat3(    cy * cz    ,    sz          ,  -sy * cz,
+    sx * sy - sz * cx * cy ,    cx * cz     ,	sx * cy + sy * sz * cx,
+    sx * sz * cy + sy * cx ,    - sx * cz   ,	- sx * sy * sz + cx * cy);				   
 }
 
 uniform vec3 mainrotor;
