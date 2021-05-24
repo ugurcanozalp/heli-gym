@@ -50,9 +50,9 @@ void main()
     if ((pos.y > 1.24 && pos.x > -4.62) || (pos.y > 1.1 && pos.x > 1.65))
     {
         pos.x -= 0.222994;
-        pos = rotationMatrixXYZ(vec3(-1.2086,  0.0, 3.0959)) * pos;
+        pos = rotationMatrixXYZ(vec3(1.2086,  0.0, 3.0959)) * pos;
         pos = rotationMatrixXYZ(mainrotor) * pos;
-        pos = rotationMatrixXYZ(vec3(1.2086, 0.0, -3.0959)) * pos;
+        pos = rotationMatrixXYZ(vec3(-1.2086, 0.0, -3.0959)) * pos;
         pos.x += 0.222994;
     }
     
