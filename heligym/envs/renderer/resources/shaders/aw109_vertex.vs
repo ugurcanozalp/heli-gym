@@ -30,9 +30,9 @@ float sy = sin(r.y);
 float cz = cos(r.z);
 float sz = sin(r.z);
 
-return mat3(cz * cy, 	                cz * sy, 	                         sz,
-			-cz * sy + sx * -sz * cy,	cx * cy + sx * -sz * sy,		sx * cz,
-			sx * sy + cx * -sz * cy,		-sx * cy + cx * -sz * sy,	cx * cz);				   
+return mat3(cy * cz                ,    sz          ,  -sy*cz,
+			sx * sy - sz * cz * cy ,    cx * cz     ,	sx * cy + sy * sz * cx,
+			sx * sz * cy + sy * cx ,    -sx * cz    ,	- sx * sy * sz + cx * cy);				   
 }
 
 uniform vec3 mainrotor;
@@ -50,9 +50,9 @@ void main()
     if ((pos.y > 1.24 && pos.x > -4.62) || (pos.y > 1.1 && pos.x > 1.65))
     {
         pos.x -= 0.222994;
-        pos = rotationMatrixXYZ(vec3(1.2086,  0.0, 3.0959) * 3.141592 / 180) * pos;
+        pos = rotationMatrixXYZ(vec3(-1.2086,  0.0, 3.0959)) * pos;
         pos = rotationMatrixXYZ(mainrotor) * pos;
-        pos = rotationMatrixXYZ(vec3(-1.2086, 0.0, -3.0959) * 3.141592 / 180) * pos;
+        pos = rotationMatrixXYZ(vec3(1.2086, 0.0, -3.0959)) * pos;
         pos.x += 0.222994;
     }
     
