@@ -30,10 +30,11 @@ float sy = sin(r.y);
 float cz = cos(r.z);
 float sz = sin(r.z);
 
-return mat3(    cy * cz    ,    sz          ,  -sy * cz,
-    sx * sy - sz * cx * cy ,    cx * cz     ,	sx * cy + sy * sz * cx,
-    sx * sz * cy + sy * cx ,    - sx * cz   ,	- sx * sy * sz + cx * cy);				   
-}
+return mat3(    cy * cz         ,    sz                         ,  -sy * cz                  ,
+    - cx * sz * cy + sx * sy    ,    cx * cz                    ,  sx * cy + sy * sz * cx    ,
+    sy * cx +  sx * cy * sz     ,    - sx * cz                  ,  cx * cy - sx * sy * sz    );                   
+};
+
 
 uniform vec3 mainrotor;
 uniform vec3 tailrotor;
@@ -46,14 +47,18 @@ void main()
 
     vec3 pos = aPos;
 
-    // main rotor blade rotation
+    // main rotor blade rotation, remember to exclude lower swashplate
     if ((pos.y > 1.24 && pos.x > -4.62) || (pos.y > 1.1 && pos.x > 1.65))
     {
-        pos.x -= 0.222994;
-        pos = rotationMatrixXYZ(vec3(1.2086,  0.0, 3.0959)) * pos;
+        pos.x -= 0.222994; // exactly compute main rotor hub location here.
+        pos.y += 1.44; 
+        pos.z += 0.1;
+        pos = rotationMatrixXYZ(vec3(1.2086,  0.0, 3.0959) * 3.141592 / 180) * pos;
         pos = rotationMatrixXYZ(mainrotor) * pos;
-        pos = rotationMatrixXYZ(vec3(-1.2086, 0.0, -3.0959)) * pos;
+        pos = rotationMatrixXYZ(vec3(-1.2086, 0.0, -3.0959) * 3.141592 / 180) * pos;
         pos.x += 0.222994;
+        pos.y -= 1.44;
+        pos.z -= 0.1;
     }
     
     // tail rotor blade rotation
