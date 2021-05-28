@@ -50,15 +50,15 @@ void main()
     // main rotor blade rotation, remember to exclude lower swashplate
     if ((pos.y > 1.24 && pos.x > -4.62) || (pos.y > 1.1 && pos.x > 1.65))
     {
-        pos.x -= 0.222994; // exactly compute main rotor hub location here.
-        pos.y += 1.44; 
-        pos.z += 0.1;
+        pos.x -= 0.207604; // exactly compute main rotor hub location here.
+        pos.y -= 1.31428; 
+        pos.z -= 0.004184;
         pos = rotationMatrixXYZ(vec3(1.2086,  0.0, 3.0959) * 3.141592 / 180) * pos;
         pos = rotationMatrixXYZ(mainrotor) * pos;
         pos = rotationMatrixXYZ(vec3(-1.2086, 0.0, -3.0959) * 3.141592 / 180) * pos;
-        pos.x += 0.222994;
-        pos.y -= 1.44;
-        pos.z -= 0.1;
+        pos.x += 0.207604;
+        pos.y += 1.31428;
+        pos.z += 0.004184;
     }
     
     // tail rotor blade rotation

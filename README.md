@@ -97,7 +97,7 @@ The rest is usual as of any GYM environment !
 ## __TODO List__
 
 To do list, ordered according to importance order.
-- [ ] Fix rotor rotation rendering problem
+- [x] Fix rotor rotation rendering problem
 - [x] Make terrain height map input generic
 - [ ] Place all helicopter related resources into single folder
 - [ ] Add turbulence model (probably Dryden Turbulence Model)
