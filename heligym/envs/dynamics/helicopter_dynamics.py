@@ -178,6 +178,26 @@ class HelicopterDynamics(DynamicSystem):
     def _ground_touching_altitude(self):
         return self.__get_ground_height_from_hmap() + self.HELI['WL_CG']/12 # divide by 12 to make inch to feet
 
+    def _wind_dynamics(self, h):
+        h_gr = h - self._ground_touching_altitude()
+        # MIL-HDBK-1797 and MIL-HDBK-1797B
+        if h_gr < 1750.0:
+            h_gr_ = max(h_gr, 20.0)
+            Lu = h_gr_/(0.177 + 0.000823*h_gr_)**1.2
+            Lv = 0.5*Lu
+            Lw = 0.5*h_gr_
+            w20 = (self.ENV['TURB_LVL']-1)/6*102.0 # [ft/s]
+            sigma_w = 0.1*w20
+            sigma_u = sigma_w*/(0.177 + 0.000823*h_gr_)**0.4
+            sigma_v = sigma_u
+        else:
+            Lu = 1750.0
+            Lv = 0.5*Lu
+            Lw = 0.5*Lu
+            calc_sigma = 0
+            sigma_u, sigma_v, sigma_w = calc_sigma
+        pass
+
     def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr, psi_mr):
         """Calculate Forces and Moments caused by Main Rotor
         ans Main Rotor Dynamics

@@ -10,6 +10,7 @@ ENV:
     MAX_GR_ALT  : 8809.0551 # [ft] Maximum altitude of terrain map
     NS_MAX      : 6561.6798 # [ft] Span of terrain in north-south axis
     EW_MAX      : 6561.6798 # [ft] Span of terrain in east-west axis
+    TURB_LVL    : 3 # Turbulence level 1-Lightest 7-strongest
     HMAP_PATH   : "/models/terrain/terrain_hmap.png"
     NMAP_PATH   : "/models/terrain/terrain_normal.png"
 
