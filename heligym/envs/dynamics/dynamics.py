@@ -129,7 +129,7 @@ class DynamicSystem(object):
     def step_end(self):
         """This method should be overwritten by inherited classes.
         """
-        pass
+        raise NotImplementedError
 
     def trim(self):
         raise NotImplementedError

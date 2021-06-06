@@ -8,6 +8,7 @@ import imageio
 from .kinematic import euler_to_rotmat, pqr_to_eulerdot_mat
 from .dynamics import DynamicSystem, State
 from .utils import pi_bound
+from .lookup import LookUpTable
 
 FTS2KNOT    = 0.5924838 # ft/s to knots conversion
 EPS         = 1e-4 # small value for divison by zero
@@ -53,6 +54,16 @@ class HelicopterDynamics(DynamicSystem):
             "psi_mr": 0.0,
             "psi_tr": 0.0
         }
+
+        self.TEP = LookUpTable(7,12) # Turbulence Exceedence Probability Lookup Table
+        self.TEP       << 500.0 << 1750.0 << 3750.0 << 7500.0 << 15000.0 << 25000.0 << 35000.0 << 45000.0 << 55000.0 << 65000.0 << 75000.0 << 80000.0 \
+                << 1   <<   3.2 <<    2.2 <<    1.5 <<    0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 \
+                << 2   <<   4.2 <<    3.6 <<    3.3 <<    1.6 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 \
+                << 3   <<   6.6 <<    6.9 <<    7.4 <<    6.7 <<     4.6 <<     2.7 <<     0.4 <<     0.0 <<     0.0 <<     0.0 <<     0.0 <<     0.0 \
+                << 4   <<   8.6 <<    9.6 <<   10.6 <<   10.1 <<     8.0 <<     6.6 <<     5.0 <<     4.2 <<     2.7 <<     0.0 <<     0.0 <<     0.0 \
+                << 5   <<  11.8 <<   13.0 <<   16.0 <<   15.1 <<    11.6 <<     9.7 <<     8.1 <<     8.2 <<     7.9 <<     4.9 <<     3.2 <<     2.1 \
+                << 6   <<  15.6 <<   17.6 <<   23.0 <<   23.6 <<    22.1 <<    20.0 <<    16.0 <<    15.1 <<    12.1 <<     7.9 <<     6.2 <<     5.1 \
+                << 7   <<  18.7 <<   21.5 <<   28.4 <<   30.2 <<    30.7 <<    31.0 <<    25.2 <<    23.1 <<    17.5 <<    10.7 <<     8.4 <<     7.2
 
     def __register_states(self):
         self._register_state('vi_mr', np.zeros(1, dtype=np.float))
@@ -180,23 +191,27 @@ class HelicopterDynamics(DynamicSystem):
 
     def _wind_dynamics(self, h):
         h_gr = h - self._ground_touching_altitude()
+
         # MIL-HDBK-1797 and MIL-HDBK-1797B
-        if h_gr < 1750.0:
-            h_gr_ = max(h_gr, 20.0)
-            Lu = h_gr_/(0.177 + 0.000823*h_gr_)**1.2
+        w20 = (self.ENV['TURB_LVL']-1) / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
+        if h_gr <= 1000.0: # Low-altitude turbulence 
+            h_gr = max(h_gr, 10.0)
+            Lu = h_gr/( (0.177 + 0.000823*h_gr)**1.2 )
             Lv = 0.5*Lu
-            Lw = 0.5*h_gr_
-            w20 = (self.ENV['TURB_LVL']-1)/6*102.0 # [ft/s]
+            Lw = 0.5*h_gr
             sigma_w = 0.1*w20
-            sigma_u = sigma_w*/(0.177 + 0.000823*h_gr_)**0.4
+            sigma_u = sigma_w/( (0.177 + 0.000823*h_gr)**0.4 )
             sigma_v = sigma_u
-        else:
+        elif h >= 2000.0: # High-altitude turbulence
             Lu = 1750.0
             Lv = 0.5*Lu
             Lw = 0.5*Lu
-            calc_sigma = 0
-            sigma_u, sigma_v, sigma_w = calc_sigma
-        pass
+            sigma_u, sigma_v, sigma_w = self.TEP.get_value_2D(self.ENV['TURB_LVL'], h_gr)
+        else: # Medium-altitude turbulence which is interpolation of 1000 ft (Low-altitude) and 2000 ft (high-altitude)
+            Lu = 1000 + (h_gr - 1000.0) / 1000.0 * 750.0
+            Lv = 0.5*Lu
+            Lw = Lu
+            sigma_u, sigma_v, sigma_w = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.ENV['TURB_LVL'], h_gr) - 0.1 * w20)            
 
     def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr, psi_mr):
         """Calculate Forces and Moments caused by Main Rotor
@@ -466,9 +481,11 @@ class HelicopterDynamics(DynamicSystem):
             tas = np.linalg.norm(uvw_air) # true air speed in ft/s
             sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [deg] Sideslip angle
             aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [deg] % Angle of Attack
-            ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
-            track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [deg] Track angle
-            #
+
+            # These two are not need for now. 
+            #ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
+            #track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [deg] Track angle
+            
             self.observation = np.array([power_total_hp, \
                 tas, aoa_deg, sideslip_deg, \
                 ned_vel[0], ned_vel[1], -ned_vel[2], \
