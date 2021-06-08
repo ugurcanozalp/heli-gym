@@ -22,7 +22,7 @@ class HelicopterDynamics(DynamicSystem):
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
         "LON_ACC", "LAT_ACC", "DWN_ACC", "N_POS", "E_POS", "ALTITUDE"]
     
-    _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "aw109.yaml")
+    _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "AW109.yaml")
     @classmethod
     def init_yaml(cls, yaml_path: str = None, dt=0.01):
         yaml_path = cls._default_yaml if yaml_path is None else yaml_path

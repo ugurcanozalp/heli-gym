@@ -35,7 +35,7 @@ class Heli(gym.Env, EzPickle):
         "psi_mr": 0.0,
         "psi_tr": 0.0
     }
-    def __init__(self, heli_name:str = "aw109", trim_cond=None):
+    def __init__(self, heli_name:str = "AW109", trim_cond=None):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
@@ -46,7 +46,7 @@ class Heli(gym.Env, EzPickle):
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
         self.set_target()
-        
+
         self.trim_cond = self.default_trim_cond
         if trim_cond is not None:
             self.trim_cond.update(trim_cond)
