@@ -527,7 +527,7 @@ class HelicopterDynamics(DynamicSystem):
             ], dtype=np.float)
 
         y = self.__trim_fcn(x)
-        tol = y.transpose()@y
+        tol = (y-y_target).transpose()@(y-y_target)
         while tol>EPS**2:
             dydx = []
             for i in range(n_vars):
