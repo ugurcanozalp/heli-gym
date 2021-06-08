@@ -36,9 +36,9 @@ In addition, inflow dynamics are added and model is adjusted so that it covers m
 | 7   | roll angle         | deg   | -180  | 180    |
 | 8   | pitch angle        | deg   | -180  | 180    |
 | 9   | yaw angle          | deg   | -180  | 180    |
-| 10  | roll rate          | deg/s | -∞    | ∞      |  
-| 11  | pitch rate         | deg/s | -∞    | ∞      |  
-| 12  | yaw rate           | deg/s | -∞    | ∞      |  
+| 10  | roll rate (body)   | deg/s | -∞    | ∞      |  
+| 11  | pitch rate (body)  | deg/s | -∞    | ∞      |  
+| 12  | yaw rate (body)    | deg/s | -∞    | ∞      |  
 | 13  | x acc (body)       | ft/s^2| -∞    | ∞      |  
 | 14  | y acc (body)       | ft/s^2| -∞    | ∞      |  
 | 15  | z acc (body)       | ft/s^2| -∞    | ∞      |  

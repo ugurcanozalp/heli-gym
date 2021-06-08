@@ -536,7 +536,7 @@ class HelicopterDynamics(DynamicSystem):
                 dydx.append(dydxi)
 
             dydx = np.stack(dydx, axis=-1)
-            x = x - 0.2*np.linalg.inv(dydx)@(y-y_target) # decrease step by multiplying 0.2 to guarantee convergence.
+            x = x - 0.4*np.linalg.inv(dydx)@(y-y_target) # decrease step by multiplying 0.2 to guarantee convergence.
             y = self.__trim_fcn(x)
             tol = (y-y_target).transpose()@(y-y_target)
 
