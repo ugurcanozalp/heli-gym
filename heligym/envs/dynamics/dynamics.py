@@ -77,8 +77,9 @@ class DynamicSystem(object):
         self.state = State()
         self.state_dots = State()
         self.dt = dt
-        self.last_action = None # should be filled after a step call.
-        self.observation = None # should be filled after a step call
+        self.last_action = None # should be filled after a step call
+        self.observation = None # should be filled after a step call, or trim
+        self.previous_observation = None # should be filled after a step call
 
     def dynamics(self, state, action, set_observations=False):
         raise NotImplementedError
@@ -102,6 +103,7 @@ class DynamicSystem(object):
     def step(self, action):
         """This function lets the system to go one time step ahead using RK4.
         """
+        self.previous_observation = self.observation
         k1 = self.dynamics(self.state, action)
         k2 = self.dynamics(self.state + k1 * (0.5*self.dt), action)
         k3 = self.dynamics(self.state + k2 * (0.5*self.dt), action)
@@ -125,6 +127,9 @@ class DynamicSystem(object):
         """Getter function for observations
         """
         return self.observation
+
+    def _get_previous_observation(self):
+        return self.previous_observation
 
     def step_end(self):
         """This method should be overwritten by inherited classes.

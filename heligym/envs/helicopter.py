@@ -25,7 +25,17 @@ class Heli(gym.Env, EzPickle):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : FPS
     }
-    def __init__(self, heli_name:str = "aw109"):
+    # Default trim condition, ground trim.
+    default_trim_cond = {
+        "yaw": 0.0,
+        "yaw_rate": 0.0,
+        "ned_vel": [0.0, 0.0, 0.0],
+        "gr_alt": 0.0,
+        "xy": [0.0, 0.0],
+        "psi_mr": 0.0,
+        "psi_tr": 0.0
+    }
+    def __init__(self, heli_name:str = "aw109", trim_cond=None):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
@@ -34,15 +44,10 @@ class Heli(gym.Env, EzPickle):
         self.max_time = 30 # seconds
         self.success_duration = 5 # seconds
         self.successed_time = 0 # time counter for successing task through time.
-        self.trim_cond = {
-            "yaw": 0.0,
-            "yaw_rate": 0.0,
-            "ned_vel": [0.0, 0.0, 0.0],
-            "gr_alt": 100.0,
-            "xy": [0.0, 0.0],
-            "psi_mr": 0.0,
-            "psi_tr": 0.0
-        }
+        
+        self.trim_cond = self.default_trim_cond
+        if trim_cond is not None:
+            self.trim_cond.update(trim_cond)
         
         self.renderer = Renderer(w=1024, h=768, title='heligym')
         self.renderer.set_fps(FPS)
@@ -140,10 +145,10 @@ class Heli(gym.Env, EzPickle):
         self.time_counter += DT
         self.heli_dyn.step(actions)
         observation = self.heli_dyn._get_observation()
-        reward = self._calculate_reward()
+        reward, successed_step = self._calculate_reward()
         info = self._get_info()
         done = info['failed'] or info['successed'] or info['time_up']
-        self.successed_time = self.successed_time + DT if info['successed_step'] else 0
+        self.successed_time = self.successed_time + DT if successed_step else 0
         return observation, reward, done, info
 
     def reset(self):
@@ -159,7 +164,6 @@ class Heli(gym.Env, EzPickle):
         return {
             'failed': self._is_failed(), 
             'successed': self._is_successed(), 
-            'successed_step': self._is_successed_step(),
             'time_up': self._is_time_up()
             }
 
@@ -178,37 +182,67 @@ class Heli(gym.Env, EzPickle):
     def _is_time_up(self):
         return self.time_counter > self.max_time
 
-    def _is_successed_step(self):
-        raise NotImplementedError
+    def _calculate_reward(self, target):
+        obs = self.heli_dyn._get_observation()
+        obs_prev = self.heli_dyn._get_previous_observation()
+        score = _scorer(obs, target)
+        score_prev = _scorer(obs_prev, target)
+        good_step = 1.0 if score > score_prev else 0.0
+        successed_step = score > 0.5
+        reward = good_step*(1-score) + score**2, successed_step
+        return reward
 
-    def _calculate_reward(self):
+    def _scorer(self, obs, target):
         raise NotImplementedError
 
 class HeliHover(Heli):
-    def __init__(self, heli_name:str = "aw109"):
-        Heli.__init__(self, heli_name=heli_name)
-        self.target_location = np.array([0,0,-self.heli_dyn.ENV['GR_ALT']-200])
-        self.trim_cond = {
-            "yaw": 0.0,
-            "yaw_rate": 0.0,
-            "ned_vel": [0.0, 0.0, 0.0],
-            "gr_alt": 0.0,
-            "xy": [0.0, 0.0],
-            "psi_mr": 0.0,
-            "psi_tr": 0.0
-        }
+    default_trim_cond = {
+        "yaw": 0.0,
+        "yaw_rate": 0.0,
+        "ned_vel": [0.0, 0.0, 0.0],
+        "gr_alt": 0.0,
+        "xy": [0.0, 0.0],
+        "psi_mr": 0.0,
+        "psi_tr": 0.0
+    }
+    default_target_nealoc = np.array([0,0,500], dtype=np.float)
 
-    def _is_successed_step(self):
-        return np.linalg.norm(self.heli_dyn.state['xyz'] - self.target_location) < (2*self.heli_dyn.MR['R'])
+    def _scorer(self, obs, target):
+        nealoc = obs[16:]
+        target_nealoc = target.get("nealoc", self.default_target_nealoc)
+        cost_nealoc = np.linalg.norm(nealoc - target_nealoc)/(4*self.heli_dyn.MR['R'])
+        #
+        cost = cost_nealoc
+        score = 1.0/(1.0+cost)
+        return score
 
-    def _calculate_reward(self):
-        dloc = self.heli_dyn.state['xyz'] - self.target_location
-        dloc_norm = np.linalg.norm(dloc)
-        vel = self.heli_dyn.state_dots['xyz']
-        direction_sim = np.inner(dloc/dloc_norm, vel/(0.75*self.heli_dyn.MR['V_TIP']))
-        closeness = np.exp(-dloc_norm/(4*self.heli_dyn.MR['R'])) 
-        reward = (1-closeness)*direction_sim + closeness
-        return reward
+class HeliForwardFlight(Heli):
+    default_target_nevel = np.array([100.0,50.0], dtype=np.float)
+    default_target_alt = np.array([500], dtype=np.float)
+
+    def _scorer(self, obs, target):
+        nevel = obs[4:6]
+        target_nevel = target.get("nevel", self.default_target_nevel)
+        cost_nevel = np.linalg.norm(nevel - target_nevel)/(self.heli_dyn.MR['V_TIP']/64)
+        alt = obs[18:]
+        target_alt = target.get("alt", self.default_target_alt)
+        cost_alt = np.linalg.norm(alt - target_alt)/(4*self.heli_dyn.MR['R'])
+        #
+        cost = (cost_nevel + cost_alt)/2
+        score = 1.0/(1.0+cost)
+        return score
+
+class HeliObliqueFlight(Heli):
+    default_target_neavel = np.array([40.0,0.0,15.0], dtype=np.float)
+
+    def _scorer(self, obs, target):
+        neavel = obs[4:7]
+        target_neavel = target.get("neavel", self.default_target_neavel)
+        cost_neavel = np.linalg.norm(neavel - target_neavel)/(self.heli_dyn.MR['V_TIP']/64)
+        #
+        cost = cost_neavel
+        score = 1.0/(1.0+cost)
+        return score
 
 if __name__=='__main__':
     env = HeliHover()
