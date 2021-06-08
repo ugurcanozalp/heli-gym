@@ -134,10 +134,7 @@ class DynamicSystem(object):
     def step_end(self):
         """This method should be overwritten by inherited classes.
         """
-        raise NotImplementedError
-
-    def trim(self):
-        raise NotImplementedError
+        pass
 
 if __name__=='__main__':
     mystate = State([("uvw", np.zeros(3)), ("pqr", np.zeros(3)), ("xyz", np.zeros(3))])
