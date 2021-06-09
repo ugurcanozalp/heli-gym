@@ -35,7 +35,7 @@ class Heli(gym.Env, EzPickle):
         "psi_mr": 0.0,
         "psi_tr": 0.0
     }
-    def __init__(self, heli_name:str = "AW109", trim_cond=None):
+    def __init__(self, heli_name:str = "aw109", trim_cond=None):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
