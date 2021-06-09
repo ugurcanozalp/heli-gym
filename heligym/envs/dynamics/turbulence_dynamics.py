@@ -42,7 +42,7 @@ class TurbulenceDynamics(DynamicSystem):
 
     def _calc_params(self, h_gr):
         # MIL-HDBK-1797 and MIL-HDBK-1797B
-        w20 = (self.turb_level-1) / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
+        w20 = self.turb_level / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
         if h_gr <= 1000.0: # Low-altitude turbulence 
             h_gr = max(h_gr, 10.0)
             Lu = h_gr/( (0.177 + 0.000823*h_gr)**1.2 )
@@ -51,17 +51,18 @@ class TurbulenceDynamics(DynamicSystem):
             sigma_w = 0.1*w20
             sigma_u = sigma_w/( (0.177 + 0.000823*h_gr)**0.4 )
             sigma_v = sigma_u
-        elif h >= 2000.0: # High-altitude turbulence
+        elif h_gr >= 2000.0: # High-altitude turbulence
             Lu = 1750.0
             Lv = 0.5*Lu
             Lw = 0.5*Lu
-            sigma_u, sigma_v, sigma_w = self.TEP.get_value_2D(self.turb_level, h_gr)
+            sigma = self.TEP.get_value_2D(self.turb_level, h_gr)
+            sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
         else: # Medium-altitude turbulence which is interpolation of 1000 ft (Low-altitude) and 2000 ft (high-altitude)
             Lu = 1000 + (h_gr - 1000.0) / 1000.0 * 750.0
             Lv = 0.5*Lu
             Lw = Lu
-            sigma_u, sigma_v, sigma_w = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.turb_level, h_gr) - 0.1 * w20)
-
+            sigma = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.turb_level, h_gr) - 0.1 * w20)
+            sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
         return Lu, Lv, Lw, sigma_u, sigma_v, sigma_w
 
     def dynamics(self, state, action, set_observation=False):
@@ -77,15 +78,15 @@ class TurbulenceDynamics(DynamicSystem):
         eta_v = action[3]
         eta_w = action[4]
         #
-        Lu, Lv, Lw, sigma_u, sigma_v, sigma_w = self._calc_params(h_gr)
+        Lu, Lv, Lw, sigma_u, sigma_v, sigma_w = self._calc_params(float(h_gr))
         t_u = Lu/vel
         t_v = Lv/vel
         t_w = Lw/vel
         
         usdot = np.array([1/t_u*(eta_u - us[0])])
-        vsdot = np.array([1/(4*t_v)*(eta_v - vs[1]) - 1/t_v*vs[0], 
+        vsdot = np.array([1/(4*t_v**2)*(eta_v - vs[1]) - 1/t_v*vs[0], 
                           vs[0]]) 
-        wsdot = np.array([1/(4*t_w)*(eta_w - ws[1]) - 1/t_w*ws[0], 
+        wsdot = np.array([1/(4*t_w**2)*(eta_w - ws[1]) - 1/t_w*ws[0], 
                           ws[0]]) 
 
         state_dots["us"] = usdot
@@ -105,9 +106,9 @@ class TurbulenceDynamics(DynamicSystem):
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt 
-    turb_dyn = TurbulenceDynamics(turb_level=3, dt=0.01)
-    h_gr = 200
-    vel = 0
+    turb_dyn = TurbulenceDynamics(turb_level=7, dt=0.01)
+    h_gr = 500
+    vel = 100
     all_obs = []
     time = 0.01*np.arange(30000)
     for t in time:
