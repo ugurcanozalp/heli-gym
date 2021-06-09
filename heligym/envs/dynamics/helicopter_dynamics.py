@@ -183,35 +183,10 @@ class HelicopterDynamics(DynamicSystem):
         return height
 
     def _does_hit_ground(self, altitude):
-        #print(altitude, -self.state['xyz'][2], - self.state['xyz'][2] * FT2MTR)
-        return altitude - self._ground_touching_altitude() < 0.0
+        return altitude - self.ground_touching_altitude() < 0.0
 
-    def _ground_touching_altitude(self):
+    def ground_touching_altitude(self):
         return self.__get_ground_height_from_hmap() + self.HELI['WL_CG']/12 # divide by 12 to make inch to feet
-
-    def _wind_dynamics(self, h):
-        h_gr = h - self._ground_touching_altitude()
-
-        # MIL-HDBK-1797 and MIL-HDBK-1797B
-        w20 = (self.ENV['TURB_LVL']-1) / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
-        if h_gr <= 1000.0: # Low-altitude turbulence 
-            h_gr = max(h_gr, 10.0)
-            Lu = h_gr/( (0.177 + 0.000823*h_gr)**1.2 )
-            Lv = 0.5*Lu
-            Lw = 0.5*h_gr
-            sigma_w = 0.1*w20
-            sigma_u = sigma_w/( (0.177 + 0.000823*h_gr)**0.4 )
-            sigma_v = sigma_u
-        elif h >= 2000.0: # High-altitude turbulence
-            Lu = 1750.0
-            Lv = 0.5*Lu
-            Lw = 0.5*Lu
-            sigma_u, sigma_v, sigma_w = self.TEP.get_value_2D(self.ENV['TURB_LVL'], h_gr)
-        else: # Medium-altitude turbulence which is interpolation of 1000 ft (Low-altitude) and 2000 ft (high-altitude)
-            Lu = 1000 + (h_gr - 1000.0) / 1000.0 * 750.0
-            Lv = 0.5*Lu
-            Lw = Lu
-            sigma_u, sigma_v, sigma_w = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.ENV['TURB_LVL'], h_gr) - 0.1 * w20)            
 
     def _calc_mr_fm(self, rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr, psi_mr):
         """Calculate Forces and Moments caused by Main Rotor
@@ -455,7 +430,7 @@ class HelicopterDynamics(DynamicSystem):
             K = w**2 * self.HELI["M"]
             C =  2 * zeta * self.HELI["M"] * w
             cxdot = C * ned_vel[2]
-            kx = K * (xyz[2] + self._ground_touching_altitude())
+            kx = K * (xyz[2] + self.ground_touching_altitude())
             force_ground = earth2body@ np.array([0.0, 0.0, -(cxdot + kx) + EPS])
             force_total += force_ground
 
@@ -508,7 +483,7 @@ class HelicopterDynamics(DynamicSystem):
         self.state['euler'][-1] = params["yaw"]
         self.state['psi_mr'][0] = params["psi_mr"]
         self.state['psi_tr'][0] = params["psi_tr"]
-        cg_from_bottom = -self._ground_touching_altitude()
+        cg_from_bottom = -self.ground_touching_altitude()
         self.state['xyz'][0] = params["xy"][0]
         self.state['xyz'][1] = params["xy"][1]
         self.state['xyz'][2] = cg_from_bottom-params["gr_alt"]

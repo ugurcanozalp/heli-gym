@@ -10,6 +10,7 @@ from gym import spaces
 from gym.utils import seeding, EzPickle
 
 from .dynamics import HelicopterDynamics
+from .dynamics import TurbulenceDynamics
 from .renderer.api import Renderer
 
 FPS         = 100.0
@@ -39,7 +40,7 @@ class Heli(gym.Env, EzPickle):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
         self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
-        self.turb_dyn = None
+        self.turb_dyn = TurbulenceDynamics(3, DT)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.set_max_time(30) # seconds
@@ -145,6 +146,15 @@ class Heli(gym.Env, EzPickle):
 
     def step(self, actions):
         self.time_counter += DT
+        # Turbulence calculations
+        pre_observations = self.heli_dyn._get_observation()
+        h_gr = self.heli_dyn.ground_touching_altitude()
+        eta = np.random.randn(3)
+        turb_action = np.concatenate([np.array([pre_observations[1], h_gr]), eta])
+        self.turb_dyn.step(turb_action)
+        turb_vel = self.turb_dyn._get_observation()
+        # Helicopter dynamics calculations
+        self.heli_dyn.set_wind(turb_vel)        
         self.heli_dyn.step(actions)
         observation = self.heli_dyn._get_observation()
         reward, successed_step = self._calculate_reward()
