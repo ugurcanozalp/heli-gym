@@ -18,6 +18,7 @@ class TurbulenceDynamics(DynamicSystem):
 
     def __init__(self, turb_level, dt):
         super(TurbulenceDynamics, self).__init__(dt)
+        self.eta_norm = 1.0/np.sqrt(dt)
         self.turb_level = turb_level
         self.__register_states()
         self.TEP = LookUpTable(7,12) # Turbulence Exceedence Probability Lookup Table
@@ -74,9 +75,9 @@ class TurbulenceDynamics(DynamicSystem):
 
         vel = np.max([action[0], 0.1])
         h_gr = action[1]
-        eta_u = action[2]
-        eta_v = action[3]
-        eta_w = action[4]
+        eta_u = action[2]*self.eta_norm
+        eta_v = action[3]*self.eta_norm
+        eta_w = action[4]*self.eta_norm
         #
         Lu, Lv, Lw, sigma_u, sigma_v, sigma_w = self._calc_params(float(h_gr))
         t_u = Lu/vel
@@ -106,7 +107,7 @@ class TurbulenceDynamics(DynamicSystem):
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt 
-    turb_dyn = TurbulenceDynamics(turb_level=7, dt=0.01)
+    turb_dyn = TurbulenceDynamics(turb_level=1, dt=0.01)
     h_gr = 500
     vel = 100
     all_obs = []
