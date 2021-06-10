@@ -11,15 +11,20 @@ EPS         = 1e-4 # small value for divison by zero
 FT2MTR      = 0.3048 # ft to meter
 SQRT_3      = 1.7320508075688772 # sqrt(3)
 TWO_D_PI    = 0.6366197723675814 # 2/pi
+R2D         = 180/math.pi # Rad to deg
+D2R         = 1/R2D
 
-class TurbulenceDynamics(DynamicSystem):
-    
+class WindDynamics(DynamicSystem):
+    """Wind model for aircraft simulations with Dryden Turbulence model."""
     _observations = ["TURB_U", "TURB_V", "TURB_W"]
 
-    def __init__(self, turb_level, dt):
-        super(TurbulenceDynamics, self).__init__(dt)
+    def __init__(self, params, dt):
+        super(WindDynamics, self).__init__(dt)
         self.eta_norm = 1.0/np.sqrt(dt)
-        self.turb_level = turb_level
+        self.turbulence_level = params['TURB_LVL']
+        self.wind_dir = params['WIND_DIR']*D2R
+        self.wind_speed = params['WIND_SPD']
+        self.wind_mean_ned = self.wind_speed*np.array([np.cos(self.wind_dir), np.sin(self.wind_dir), 0], dtype=np.float32)
         self.__register_states()
         self.TEP = LookUpTable(7,12) # Turbulence Exceedence Probability Lookup Table
         self.TEP       << 500.0 << 1750.0 << 3750.0 << 7500.0 << 15000.0 << 25000.0 << 35000.0 << 45000.0 << 55000.0 << 65000.0 << 75000.0 << 80000.0 \
@@ -43,7 +48,7 @@ class TurbulenceDynamics(DynamicSystem):
 
     def _calc_params(self, h_gr):
         # MIL-HDBK-1797 and MIL-HDBK-1797B
-        w20 = self.turb_level / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
+        w20 = self.turbulence_level / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
         if h_gr <= 1000.0: # Low-altitude turbulence 
             h_gr = max(h_gr, 10.0)
             Lu = h_gr/( (0.177 + 0.000823*h_gr)**1.2 )
@@ -56,13 +61,13 @@ class TurbulenceDynamics(DynamicSystem):
             Lu = 1750.0
             Lv = 0.5*Lu
             Lw = 0.5*Lu
-            sigma = self.TEP.get_value_2D(self.turb_level, h_gr)
+            sigma = self.TEP.get_value_2D(self.turbulence_level, h_gr)
             sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
         else: # Medium-altitude turbulence which is interpolation of 1000 ft (Low-altitude) and 2000 ft (high-altitude)
             Lu = 1000 + (h_gr - 1000.0) / 1000.0 * 750.0
             Lv = 0.5*Lu
             Lw = Lu
-            sigma = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.turb_level, h_gr) - 0.1 * w20)
+            sigma = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.turbulence_level, h_gr) - 0.1 * w20)
             sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
         return Lu, Lv, Lw, sigma_u, sigma_v, sigma_w
 
@@ -73,16 +78,18 @@ class TurbulenceDynamics(DynamicSystem):
         vs = state["vs"]
         ws = state["ws"]
 
-        vel = np.max([action[0], 0.1])
-        h_gr = action[1]
-        eta_u = action[2]*self.eta_norm
-        eta_v = action[3]*self.eta_norm
-        eta_w = action[4]*self.eta_norm
+        vel_ac_ned = action[:3]
+        vel_inf_ned = vel_ac_ned + self.wind_mean_ned
+        vel_inf = np.linalg.norm(vel_inf_ned)
+        h_gr = action[3]
+        eta_u = action[4]*self.eta_norm
+        eta_v = action[5]*self.eta_norm
+        eta_w = action[6]*self.eta_norm
         #
         Lu, Lv, Lw, sigma_u, sigma_v, sigma_w = self._calc_params(float(h_gr))
-        t_u = Lu/vel
-        t_v = Lv/vel
-        t_w = Lw/vel
+        t_u = Lu/vel_inf
+        t_v = Lv/vel_inf
+        t_w = Lw/vel_inf
         
         usdot = np.array([1/t_u*(eta_u - us[0])])
         vsdot = np.array([1/(4*t_v**2)*(eta_v - vs[1]) - 1/t_v*vs[0], 
@@ -107,14 +114,15 @@ class TurbulenceDynamics(DynamicSystem):
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt 
-    turb_dyn = TurbulenceDynamics(turb_level=1, dt=0.01)
-    h_gr = 500
-    vel = 100
+    params = {'TURB_LVL': 3, 'WIND_DIR': 45, 'WIND_SPD': 30}
+    turb_dyn = TurbulenceDynamics(turbulence_level=1, dt=0.01)
+    h_gr = np.array([500], dtype=np.float32)
+    vel = np.array([100,0,0], dtype=np.float32)
     all_obs = []
     time = 0.01*np.arange(30000)
     for t in time:
         eta = np.random.randn(3)
-        action = np.concatenate([np.array([vel, h_gr]), eta])
+        action = np.concatenate([vel, h_gr, eta])
         turb_dyn.step(action)
         observation = turb_dyn._get_observation()
         all_obs.append(observation)

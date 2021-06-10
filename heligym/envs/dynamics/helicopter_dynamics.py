@@ -1,4 +1,3 @@
-import yaml
 import sys, math
 import numpy as np
 import os
@@ -18,19 +17,10 @@ FT2MTR      = 0.3048 # ft to meter
 
 class HelicopterDynamics(DynamicSystem):
 
-    _observations = ["POWER", "TAS", "AOA", "SSLIP", "N_VEL", "E_VEL", "CLIMB_RATE", 
+    _observations = ["POWER", "TAS", "AOA", "SSLIP", "N_VEL", "E_VEL", "DES_RATE", 
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
         "LON_ACC", "LAT_ACC", "DWN_ACC", "N_POS", "E_POS", "ALTITUDE"]
     
-    _default_yaml = os.path.join(os.path.dirname(__file__), "..", "helis", "aw109.yaml")
-    @classmethod
-    def init_yaml(cls, yaml_path: str = None, dt=0.01):
-        yaml_path = cls._default_yaml if yaml_path is None else yaml_path
-        with open(yaml_path) as foo:
-            params = yaml.safe_load(foo)
-
-        return cls(params, dt)
-
     def __init__(self, params, dt):
         super(HelicopterDynamics, self).__init__(dt)
         self.HELI = params['HELI']
@@ -463,7 +453,7 @@ class HelicopterDynamics(DynamicSystem):
             
             self.observation = np.array([power_total_hp, \
                 tas, aoa_deg, sideslip_deg, \
-                ned_vel[0], ned_vel[1], -ned_vel[2], \
+                ned_vel[0], ned_vel[1], ned_vel[2], \
                 R2D*euler[0], R2D*euler[1], R2D*euler[2], \
                 R2D*pqr[0], R2D*pqr[1], R2D*pqr[2],
                 body_acc[0], body_acc[1], body_acc[2], \

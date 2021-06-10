@@ -1,6 +1,7 @@
 """
 Helicopter control.
 """
+import yaml
 import sys, math
 import numpy as np
 import os
@@ -10,7 +11,7 @@ from gym import spaces
 from gym.utils import seeding, EzPickle
 
 from .dynamics import HelicopterDynamics
-from .dynamics import TurbulenceDynamics
+from .dynamics import WindDynamics
 from .renderer.api import Renderer
 
 FPS         = 100.0
@@ -39,8 +40,11 @@ class Heli(gym.Env, EzPickle):
     def __init__(self, heli_name:str = "aw109", trim_cond=None):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
-        self.heli_dyn = HelicopterDynamics.init_yaml(yaml_path, DT)
-        self.turb_dyn = TurbulenceDynamics(3, DT)
+        with open(yaml_path) as foo:
+            params = yaml.safe_load(foo)
+
+        self.heli_dyn = HelicopterDynamics(params, DT)
+        self.wind_dyn = WindDynamics(params['ENV'], DT)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.set_max_time(30) # seconds
@@ -81,7 +85,7 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append( bytes( "SSLIP      : %5.2f °", 'utf-8'))
         self.guiINFO_text.append( bytes( "N_VEL      : %5.2f ft/s", 'utf-8'))
         self.guiINFO_text.append( bytes( "E_VEL      : %5.2f ft/s", 'utf-8'))
-        self.guiINFO_text.append( bytes( "CLIMB_RATE : %5.2f ft/s", 'utf-8'))
+        self.guiINFO_text.append( bytes( "DES_RATE   : %5.2f ft/s", 'utf-8'))
         self.guiINFO_text.append( bytes( "ROLL       : %5.2f °", 'utf-8'))
         self.guiINFO_text.append( bytes( "PITCH      : %5.2f °", 'utf-8'))
         self.guiINFO_text.append( bytes( "YAW        : %5.2f °", 'utf-8'))
@@ -150,11 +154,11 @@ class Heli(gym.Env, EzPickle):
         pre_observations = self.heli_dyn._get_observation()
         h_gr = self.heli_dyn.ground_touching_altitude()
         eta = np.random.randn(3)
-        turb_action = np.concatenate([np.array([pre_observations[1], h_gr]), eta])
-        self.turb_dyn.step(turb_action)
-        turb_vel = self.turb_dyn._get_observation()
+        wind_action = np.concatenate([pre_observations[4:7], np.array([h_gr]), eta])
+        self.wind_dyn.step(wind_action)
+        wind_turb_vel = self.wind_dyn._get_observation()
         # Helicopter dynamics calculations
-        self.heli_dyn.set_wind(turb_vel)        
+        self.heli_dyn.set_wind(wind_turb_vel)        
         self.heli_dyn.step(actions)
         observation = self.heli_dyn._get_observation()
         reward, successed_step = self._calculate_reward()
@@ -184,7 +188,7 @@ class Heli(gym.Env, EzPickle):
         cond2 = self.heli_dyn.state_dots['xyz'][2] > self.heli_dyn.MR['V_TIP']*0.05
         cond3 = self.heli_dyn.state['euler'][0] > 60*D2R
         cond4 = self.heli_dyn.state['euler'][1] > 60*D2R
-        cond5 = np.abs(self.heli_dyn.state['xyz'][0]) > 5000 or np.abs(self.heli_dyn.state['xyz'][1]) > 5000 or -self.heli_dyn.state['xyz'][2] > self.heli_dyn.ENV['GR_ALT'] + 10000
+        cond5 = np.abs(self.heli_dyn.state['xyz'][0]) > 5000 or np.abs(self.heli_dyn.state['xyz'][1]) > 5000 or -self.heli_dyn.state['xyz'][2] > self.heli_dyn.ground_touching_altitude() + 10000
         cond = (cond1 and (cond2 or cond3 or cond4)) or cond5
         return cond
 

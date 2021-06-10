@@ -32,7 +32,7 @@ In addition, inflow dynamics are added and model is adjusted so that it covers m
 | 3   | sideslip angle     | deg   | -180  | 180    |
 | 4   | north velocity     | ft/s  | -∞    | ∞      |  
 | 5   | east velocity      | ft/s  | -∞    | ∞      |
-| 6   | climb rate         | ft/s  | -∞    | ∞      |  
+| 6   | descend rate       | ft/s  | -∞    | ∞      |  
 | 7   | roll angle         | deg   | -180  | 180    |
 | 8   | pitch angle        | deg   | -180  | 180    |
 | 9   | yaw angle          | deg   | -180  | 180    |
