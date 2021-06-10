@@ -16,7 +16,7 @@ D2R         = 1/R2D
 
 class WindDynamics(DynamicSystem):
     """Wind model for aircraft simulations with Dryden Turbulence model."""
-    _observations = ["TURB_U", "TURB_V", "TURB_W"]
+    _observations = ["WIND_N", "WIND_E", "WIND_D"]
 
     def __init__(self, params, dt):
         super(WindDynamics, self).__init__(dt)
@@ -46,7 +46,12 @@ class WindDynamics(DynamicSystem):
         self.state['vs'] = np.zeros(2, dtype=np.float)
         self.state['ws'] = np.zeros(2, dtype=np.float)
 
-    def _calc_params(self, h_gr):
+    def step_start(self):
+        """Randomly generate white noise for turbulence input
+        """
+        self.eta = np.random.randn(3)*self.eta_norm
+
+    def _calc_params(self, h_gr, vel_inf_ned):
         # MIL-HDBK-1797 and MIL-HDBK-1797B
         w20 = self.turbulence_level / 7 * 88.61 # mean wind speed at 20ft in [ft/s]
         if h_gr <= 1000.0: # Low-altitude turbulence 
@@ -57,19 +62,25 @@ class WindDynamics(DynamicSystem):
             sigma_w = 0.1*w20
             sigma_u = sigma_w/( (0.177 + 0.000823*h_gr)**0.4 )
             sigma_v = sigma_u
+            turb_azimuth = self.wind_dir
         elif h_gr >= 2000.0: # High-altitude turbulence
             Lu = 1750.0
             Lv = 0.5*Lu
             Lw = 0.5*Lu
             sigma = self.TEP.get_value_2D(self.turbulence_level, h_gr)
             sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
+            turb_azimuth = np.atan2(vel_inf_ned[1], vel_inf_ned[0])
         else: # Medium-altitude turbulence which is interpolation of 1000 ft (Low-altitude) and 2000 ft (high-altitude)
             Lu = 1000 + (h_gr - 1000.0) / 1000.0 * 750.0
             Lv = 0.5*Lu
             Lw = Lu
             sigma = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.turbulence_level, h_gr) - 0.1 * w20)
             sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
-        return Lu, Lv, Lw, sigma_u, sigma_v, sigma_w
+            r = (h_gr - 1000.0) / 1000.0
+            turb_azimuth = np.atan2(vel_inf_ned[1]*r + self.wind_mean_ned[1]*(1-r), 
+                vel_inf_ned[0]*r + self.wind_mean_ned[0]*(1-r))
+
+        return Lu, Lv, Lw, sigma_u, sigma_v, sigma_w, turb_azimuth
 
     def dynamics(self, state, action, set_observation=False):
         state_dots = self.state_dots
@@ -82,19 +93,15 @@ class WindDynamics(DynamicSystem):
         vel_inf_ned = vel_ac_ned + self.wind_mean_ned
         vel_inf = np.linalg.norm(vel_inf_ned)
         h_gr = action[3]
-        eta_u = action[4]*self.eta_norm
-        eta_v = action[5]*self.eta_norm
-        eta_w = action[6]*self.eta_norm
-        #
-        Lu, Lv, Lw, sigma_u, sigma_v, sigma_w = self._calc_params(float(h_gr))
+        Lu, Lv, Lw, sigma_u, sigma_v, sigma_w, turb_azimuth = self._calc_params(float(h_gr), vel_inf_ned)
         t_u = Lu/vel_inf
         t_v = Lv/vel_inf
         t_w = Lw/vel_inf
         
-        usdot = np.array([1/t_u*(eta_u - us[0])])
-        vsdot = np.array([1/(4*t_v**2)*(eta_v - vs[1]) - 1/t_v*vs[0], 
+        usdot = np.array([1/t_u*(self.eta[0] - us[0])])
+        vsdot = np.array([1/(4*t_v**2)*(self.eta[1] - vs[1]) - 1/t_v*vs[0], 
                           vs[0]]) 
-        wsdot = np.array([1/(4*t_w**2)*(eta_w - ws[1]) - 1/t_w*ws[0], 
+        wsdot = np.array([1/(4*t_w**2)*(self.eta[2] - ws[1]) - 1/t_w*ws[0], 
                           ws[0]]) 
 
         state_dots["us"] = usdot
@@ -108,23 +115,27 @@ class WindDynamics(DynamicSystem):
             u_turb = K_u*us[0]
             v_turb = K_v*(vs[1]+2*SQRT_3*vs[0])
             w_turb = K_w*(ws[1]+2*SQRT_3*ws[0])
-            self.observation = np.array([u_turb, v_turb, w_turb])
+            cturb, sturb = np.cos(turb_azimuth), np.sin(turb_azimuth)
+            turb_vel = np.array([cturb*u_turb - sturb*v_turb, 
+                sturb*u_turb + cturb*v_turb, 
+                w_turb])
+            wind_vel = self.wind_mean_ned + turb_vel
+            self.observation = wind_vel
 
         return state_dots
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt 
     params = {'TURB_LVL': 3, 'WIND_DIR': 45, 'WIND_SPD': 30}
-    turb_dyn = TurbulenceDynamics(turbulence_level=1, dt=0.01)
+    turb_dyn = WindDynamics(turbulence_level=1, dt=0.01)
     h_gr = np.array([500], dtype=np.float32)
     vel = np.array([100,0,0], dtype=np.float32)
     all_obs = []
     time = 0.01*np.arange(30000)
     for t in time:
-        eta = np.random.randn(3)
-        action = np.concatenate([vel, h_gr, eta])
+        action = np.concatenate([vel, h_gr])
         turb_dyn.step(action)
-        observation = turb_dyn._get_observation()
+        observation = turb_dyn.observation()
         all_obs.append(observation)
 
     all_obs = np.stack(all_obs)

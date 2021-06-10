@@ -19,7 +19,7 @@ class HelicopterDynamics(DynamicSystem):
 
     _observations = ["POWER", "TAS", "AOA", "SSLIP", "N_VEL", "E_VEL", "DES_RATE", 
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
-        "LON_ACC", "LAT_ACC", "DWN_ACC", "N_POS", "E_POS", "ALTITUDE"]
+        "LON_ACC", "LAT_ACC", "DWN_ACC", "N_POS", "E_POS", "ALTITUDE", "GROUND_ALTITUDE"]
     
     def __init__(self, params, dt):
         super(HelicopterDynamics, self).__init__(dt)
@@ -446,7 +446,7 @@ class HelicopterDynamics(DynamicSystem):
             tas = np.linalg.norm(uvw_air) # true air speed in ft/s
             sideslip_deg = R2D*np.arcsin(uvw_air[1]/(tas+EPS))# [deg] Sideslip angle
             aoa_deg = R2D*np.arctan2(uvw_air[2], (uvw_air[0]+EPS)) # [deg] % Angle of Attack
-
+            alt_gr = -xyz[2] - self.__get_ground_height_from_hmap()
             # These two are not need for now. 
             #ground_speed = np.linalg.norm(ned_vel[:2]) # [ft/s] Ground speed
             #track_angle_deg = R2D*np.arctan2(ned_vel[1],ned_vel[0]) # [deg] Track angle
@@ -457,7 +457,7 @@ class HelicopterDynamics(DynamicSystem):
                 R2D*euler[0], R2D*euler[1], R2D*euler[2], \
                 R2D*pqr[0], R2D*pqr[1], R2D*pqr[2],
                 body_acc[0], body_acc[1], body_acc[2], \
-                xyz[0], xyz[1], -xyz[2]],
+                xyz[0], xyz[1], -xyz[2], alt_gr],
                 )
 
         return state_dots

@@ -32,7 +32,7 @@ class Heli(gym.Env, EzPickle):
         "yaw": 0.0,
         "yaw_rate": 0.0,
         "ned_vel": [0.0, 0.0, 0.0],
-        "gr_alt": 0.0,
+        "gr_alt": 10.0,
         "xy": [0.0, 0.0],
         "psi_mr": 0.0,
         "psi_tr": 0.0
@@ -45,7 +45,8 @@ class Heli(gym.Env, EzPickle):
 
         self.heli_dyn = HelicopterDynamics(params, DT)
         self.wind_dyn = WindDynamics(params['ENV'], DT)
-        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(18,), dtype=np.float32)
+        self.heli_dyn.set_wind(self.wind_dyn.wind_mean_ned) # set mean wind as wind so that helicopter trims accordingly
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(19,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
         self.set_max_time(30) # seconds
         self.success_duration = 5 # seconds
@@ -98,12 +99,13 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append( bytes( "N_POS      : %5.2f ft", 'utf-8'))
         self.guiINFO_text.append( bytes( "E_POS      : %5.2f ft", 'utf-8'))
         self.guiINFO_text.append( bytes( "ALTITUDE   : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append( bytes( "GR_ALT     : %5.2f ft", 'utf-8'))
 
     def __add_to_guiText(self):
-        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn._get_observation())        
+        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn.observation)        
 
     def render(self):
-        val = self.heli_dyn._get_observation()
+        val = self.heli_dyn.observation
         val = np.append(val, np.array([0.3, 0.2]))
 
         self.renderer.set_guiOBS(self.guiINFO_text, val)
@@ -151,16 +153,15 @@ class Heli(gym.Env, EzPickle):
     def step(self, actions):
         self.time_counter += DT
         # Turbulence calculations
-        pre_observations = self.heli_dyn._get_observation()
+        pre_observations = self.heli_dyn.observation
         h_gr = self.heli_dyn.ground_touching_altitude()
-        eta = np.random.randn(3)
-        wind_action = np.concatenate([pre_observations[4:7], np.array([h_gr]), eta])
+        wind_action = np.concatenate([pre_observations[4:7], pre_observations[19:]])
         self.wind_dyn.step(wind_action)
-        wind_turb_vel = self.wind_dyn._get_observation()
+        wind_turb_vel = self.wind_dyn.observation
         # Helicopter dynamics calculations
         self.heli_dyn.set_wind(wind_turb_vel)        
         self.heli_dyn.step(actions)
-        observation = self.heli_dyn._get_observation()
+        observation = self.heli_dyn.observation
         reward, successed_step = self._calculate_reward()
         info = self._get_info()
         done = info['failed'] or info['successed'] or info['time_up']
@@ -174,7 +175,7 @@ class Heli(gym.Env, EzPickle):
             self.__create_guiINFO_text()
             self.__add_to_guiText()
             self._bGuiText = True
-        return self.heli_dyn._get_observation()      
+        return self.heli_dyn.observation      
 
     def _get_info(self):
         return {
@@ -199,8 +200,8 @@ class Heli(gym.Env, EzPickle):
         return self.time_counter > self.max_time
 
     def _calculate_reward(self):
-        obs = self.heli_dyn._get_observation()
-        obs_prev = self.heli_dyn._get_previous_observation()
+        obs = self.heli_dyn.observation
+        obs_prev = self.heli_dyn.previous_observation
         score = self._scorer(obs)
         score_prev = self._scorer(obs_prev)
         good_step = 1.0 if score > score_prev else 0.0
@@ -218,7 +219,7 @@ class HeliHover(Heli):
     default_target_nealoc = np.array([0,0,2000], dtype=np.float)
 
     def _scorer(self, obs):
-        nealoc = obs[16:]
+        nealoc = obs[16:19]
         target_nealoc = self._target.get("nealoc", self.default_target_nealoc)
         cost_nealoc = np.linalg.norm(nealoc - target_nealoc)/(2*self.heli_dyn.MR['R'])
         #
@@ -234,7 +235,7 @@ class HeliForwardFlight(Heli):
         nevel = obs[4:6]
         target_nevel = self._target.get("nevel", self.default_target_nevel)
         cost_nevel = np.linalg.norm(nevel - target_nevel)/(self.heli_dyn.MR['V_TIP']/64)
-        alt = obs[18:]
+        alt = obs[18:19]
         target_alt = self._target.get("alt", self.default_target_alt)
         cost_alt = np.linalg.norm(alt - target_alt)/(2*self.heli_dyn.MR['R'])
         #

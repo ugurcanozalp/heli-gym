@@ -10,7 +10,7 @@ ENV:
     NS_MAX      : 6561.6798 # [ft] Span of terrain in north-south axis
     EW_MAX      : 6561.6798 # [ft] Span of terrain in east-west axis
     WIND_DIR    : 45.0 # [deg] Wind direction 
-    WIND_SPD    : 30 # [ft/s] Wind speed
+    WIND_SPD    : 20 # [ft/s] Wind speed
     TURB_LVL    : 3 # Turbulence level 1-Lightest 7-strongest
     HMAP_PATH   : "/models/terrain/terrain_hmap.png"
     NMAP_PATH   : "/models/terrain/terrain_normal.png"
@@ -26,7 +26,7 @@ HELI:
     IZ          : 6407  # [slug-ft^2]
     IXZ         : 598   # [slug-ft^2]
     COL_OS      : 6.    # [deg] Collective Offset
-    COL_L       : -2.    # [deg] Collective Low
+    COL_L       : -2.   # [deg] Collective Low
     COL_H       : 15.   # [deg] Collective High
     LON_L       : -12.  # [deg] Lon Cyc Low
     LON_H       : +12.  # [deg] Lon Cyc High

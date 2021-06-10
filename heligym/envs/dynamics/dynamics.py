@@ -103,6 +103,7 @@ class DynamicSystem(object):
     def step(self, action):
         """This function lets the system to go one time step ahead using RK4.
         """
+        self.step_start()
         self.previous_observation = self.observation
         k1 = self.dynamics(self.state, action)
         k2 = self.dynamics(self.state + k1 * (0.5*self.dt), action)
@@ -123,16 +124,13 @@ class DynamicSystem(object):
         #self.state_dots = b
         #self.last_action = action
 
-    def _get_observation(self):
-        """Getter function for observations
+    def step_start(self):
+        """This method can be overwritten by inherited classes.
         """
-        return self.observation
-
-    def _get_previous_observation(self):
-        return self.previous_observation
+        pass
 
     def step_end(self):
-        """This method should be overwritten by inherited classes.
+        """This method can be overwritten by inherited classes.
         """
         pass
 
