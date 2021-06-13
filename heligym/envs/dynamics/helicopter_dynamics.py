@@ -410,7 +410,7 @@ class HelicopterDynamics(DynamicSystem):
         extra_mr_torque = power_extra_mr / self.MR['OMEGA']
         moment_mr[2] += extra_mr_torque
 
-        power_total = power_mr + power_tr + power_extra_mr + 550*self.HELI['HP_LOSS'] 
+        power_total = power_mr + power_tr + power_extra_mr + power_wn + 550*self.HELI['HP_LOSS'] 
         
         force_gravity = earth2body@np.array([0,0,self.HELI['WT']])
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity

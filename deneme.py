@@ -3,7 +3,7 @@ import heligym
 import numpy as np
 import time
 
-env = heligym.HeliHover()
+env = heligym.HeliForwardFlight()
 #env.set_max_time(1000)
 env.reset()
 action = env.heli_dyn.last_action #+ np.array([0.09, 0,0,0.04])

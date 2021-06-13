@@ -219,7 +219,7 @@ class Heli(gym.Env, EzPickle):
         obs_prev_error = self.heli_dyn.previous_observation - self.task_target
         cost_base = FPS*self.task_duration*(obs_error-obs_prev_error).transpose()@self.reward_weight@obs_error
         cost_terminal = obs_error.transpose()@self.reward_weight@obs_error
-        reward = - cost_base - cost_terminal
+        reward = - np.tanh(cost_base + cost_terminal)
         successed_step = cost_terminal < 10.0
         #print(f"Cost base: {cost_base}")
         #print(f"Cost terminal: {cost_terminal}")
@@ -241,9 +241,9 @@ class HeliHover(Heli):
             "psi_tr": 0.0
         }
         reward_weight = Heli.default_reward_weight
-        reward_weight[16,16] = 0.01/self.heli_dyn.MR['R']**2
-        reward_weight[17,17] = 0.01/self.heli_dyn.MR['R']**2
-        reward_weight[18,18] = 0.01/self.heli_dyn.MR['R']**2
+        reward_weight[16,16] = 1/self.heli_dyn.MR['R']**2
+        reward_weight[17,17] = 1/self.heli_dyn.MR['R']**2
+        reward_weight[18,18] = 1/self.heli_dyn.MR['R']**2
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
@@ -268,9 +268,9 @@ class HeliForwardFlight(Heli):
             "psi_tr": 0.0
         }
         reward_weight = Heli.default_reward_weight
-        reward_weight[4,4] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
-        reward_weight[5,5] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
-        reward_weight[18,18] = 0.01/self.heli_dyn.MR['R']**2
+        reward_weight[4,4] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
+        reward_weight[5,5] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
+        reward_weight[18,18] = 1/self.heli_dyn.MR['R']**2
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
@@ -293,9 +293,9 @@ class HeliObliqueFlight(Heli):
             "psi_tr": 0.0
         }
         reward_weight = Heli.default_reward_weight
-        reward_weight[4,4] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
-        reward_weight[5,5] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
-        reward_weight[6,6] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
+        reward_weight[4,4] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
+        reward_weight[5,5] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
+        reward_weight[6,6] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
