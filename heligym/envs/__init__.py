@@ -1,1 +1,1 @@
-from .helicopter import Heli, HeliHover
+from .helicopter import Heli, HeliHover, HeliForwardFlight, HeliObliqueFlight

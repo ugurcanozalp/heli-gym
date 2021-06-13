@@ -27,6 +27,10 @@ class Heli(gym.Env, EzPickle):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : FPS
     }
+    # Default maximum time for an episode
+    default_max_time = 40.0
+    # Default task target
+    default_task_target = np.zeros(HelicopterDynamics.n_obs)
     # Default trim condition, ground trim.
     default_trim_cond = {
         "yaw": 0.0,
@@ -37,7 +41,8 @@ class Heli(gym.Env, EzPickle):
         "psi_mr": 0.0,
         "psi_tr": 0.0
     }
-    def __init__(self, heli_name:str = "aw109", trim_cond=None):
+    default_reward_weight = np.zeros((HelicopterDynamics.n_obs,HelicopterDynamics.n_obs))
+    def __init__(self, heli_name:str = "aw109"):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
         with open(yaml_path) as foo:
@@ -46,16 +51,13 @@ class Heli(gym.Env, EzPickle):
         self.heli_dyn = HelicopterDynamics(params, DT)
         self.wind_dyn = WindDynamics(params['ENV'], DT)
         self.heli_dyn.set_wind(self.wind_dyn.wind_mean_ned) # set mean wind as wind so that helicopter trims accordingly
-        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(19,), dtype=np.float32)
-        self.action_space = spaces.Box(-1, +1, (4,), dtype=np.float32)
-        self.set_max_time(30) # seconds
-        self.success_duration = 5 # seconds
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.heli_dyn.n_obs,), dtype=np.float32)
+        self.action_space = spaces.Box(-1, +1, (self.heli_dyn.n_act,), dtype=np.float32)
         self.successed_time = 0 # time counter for successing task through time.
+        self.set_max_time()
         self.set_target()
-
-        self.trim_cond = self.default_trim_cond
-        if trim_cond is not None:
-            self.trim_cond.update(trim_cond)
+        self.set_trim_cond()
+        self.set_reward_weight()
         
         self.renderer = Renderer(w=1024, h=768, title='heligym')
         self.renderer.set_fps(FPS)
@@ -75,8 +77,21 @@ class Heli(gym.Env, EzPickle):
 
         self._bGuiText = False
        
-    def set_max_time(self, max_time):
-        self.max_time = max_time
+    # Setter functions for RL tasks
+    def set_max_time(self, max_time=None):
+        self.max_time = self.default_max_time if max_time is None else max_time  # [sec] Given time for episode
+        self.success_duration = self.max_time/4 # [sec] Required successfull time for maneuver
+        self.task_duration = self.max_time/4 # [sec] Allowed time for successing task
+
+    def set_target(self, target=None):
+        self.task_target = self.default_task_target if target is None else target
+
+    def set_trim_cond(self, trim_cond={}):
+        self.trim_cond = self.default_trim_cond
+        self.trim_cond.update(trim_cond)
+
+    def set_reward_weight(self, reward_weight=None):
+        self.reward_weight = self.default_reward_weight if reward_weight is None else reward_weight
 
     def __create_guiINFO_text(self):
         self.guiINFO_text = []
@@ -200,60 +215,91 @@ class Heli(gym.Env, EzPickle):
         return self.time_counter > self.max_time
 
     def _calculate_reward(self):
-        obs = self.heli_dyn.observation
-        obs_prev = self.heli_dyn.previous_observation
-        score = self._scorer(obs)
-        score_prev = self._scorer(obs_prev)
-        good_step = 1.0 if score > score_prev else 0.0
-        successed_step = score > 0.5
-        reward = good_step*(1-score) + score**2
+        obs_error = self.heli_dyn.observation - self.task_target
+        obs_prev_error = self.heli_dyn.previous_observation - self.task_target
+        cost_base = FPS*self.task_duration*(obs_error-obs_prev_error).transpose()@self.reward_weight@obs_error
+        cost_terminal = obs_error.transpose()@self.reward_weight@obs_error
+        reward = - cost_base - cost_terminal
+        successed_step = cost_terminal < 10.0
+        #print(f"Cost base: {cost_base}")
+        #print(f"Cost terminal: {cost_terminal}")
         return reward, successed_step
 
-    def set_target(self, target={}):
-        self._target = target
-
-    def _scorer(self, obs):
-        raise NotImplementedError
-
 class HeliHover(Heli):
-    default_target_nealoc = np.array([0,0,2000], dtype=np.float)
+    def __init__(self, heli_name:str = "aw109"):
+        Heli.__init__(self, heli_name=heli_name)
+        max_time = 40.0
+        task_target = Heli.default_task_target
+        task_target[18] = 2000.0
+        trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 10.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
+        reward_weight = Heli.default_reward_weight
+        reward_weight[16,16] = 0.01/self.heli_dyn.MR['R']**2
+        reward_weight[17,17] = 0.01/self.heli_dyn.MR['R']**2
+        reward_weight[18,18] = 0.01/self.heli_dyn.MR['R']**2
+        self.set_max_time(max_time)
+        self.set_target(task_target)
+        self.set_trim_cond(trim_cond)
+        self.set_reward_weight(reward_weight)
 
-    def _scorer(self, obs):
-        nealoc = obs[16:19]
-        target_nealoc = self._target.get("nealoc", self.default_target_nealoc)
-        cost_nealoc = np.linalg.norm(nealoc - target_nealoc)/(2*self.heli_dyn.MR['R'])
-        #
-        cost = cost_nealoc
-        score = 1.0/(1.0+cost)
-        return score
 
 class HeliForwardFlight(Heli):
-    default_target_nevel = np.array([100.0,50.0], dtype=np.float)
-    default_target_alt = np.array([2000], dtype=np.float)
 
-    def _scorer(self, obs):
-        nevel = obs[4:6]
-        target_nevel = self._target.get("nevel", self.default_target_nevel)
-        cost_nevel = np.linalg.norm(nevel - target_nevel)/(self.heli_dyn.MR['V_TIP']/64)
-        alt = obs[18:19]
-        target_alt = self._target.get("alt", self.default_target_alt)
-        cost_alt = np.linalg.norm(alt - target_alt)/(2*self.heli_dyn.MR['R'])
-        #
-        cost = (cost_nevel + cost_alt)/2
-        score = 1.0/(1.0+cost)
-        return score
+    def __init__(self, heli_name:str = "aw109"):
+        Heli.__init__(self, heli_name=heli_name)
+        max_time = 40.0
+        task_target = Heli.default_task_target
+        task_target[4:6] = np.array([100, 50])
+        task_target[18] = 2000.0
+        trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 10.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
+        reward_weight = Heli.default_reward_weight
+        reward_weight[4,4] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
+        reward_weight[5,5] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
+        reward_weight[18,18] = 0.01/self.heli_dyn.MR['R']**2
+        self.set_max_time(max_time)
+        self.set_target(task_target)
+        self.set_trim_cond(trim_cond)
+        self.set_reward_weight(reward_weight)
 
 class HeliObliqueFlight(Heli):
-    default_target_neavel = np.array([40.0,0.0,15.0], dtype=np.float)
 
-    def _scorer(self, obs):
-        neavel = obs[4:7]
-        target_neavel = self._target.get("neavel", self.default_target_neavel)
-        cost_neavel = np.linalg.norm(neavel - target_neavel)/(self.heli_dyn.MR['V_TIP']/64)
-        #
-        cost = cost_neavel
-        score = 1.0/(1.0+cost)
-        return score
+    def __init__(self, heli_name:str = "aw109"):
+        Heli.__init__(self, heli_name=heli_name)
+        max_time = 40.0
+        task_target = Heli.default_task_target
+        task_target[4:7] = np.array([40.0,0.0,15.0], dtype=np.float)
+        trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 10.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
+        reward_weight = Heli.default_reward_weight
+        reward_weight[4,4] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
+        reward_weight[5,5] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
+        reward_weight[6,6] = 0.01*self.task_duration**2/self.heli_dyn.MR['R']**2
+        self.set_max_time(max_time)
+        self.set_target(task_target)
+        self.set_trim_cond(trim_cond)
+        self.set_reward_weight(reward_weight)
 
 if __name__=='__main__':
     env = HeliHover()

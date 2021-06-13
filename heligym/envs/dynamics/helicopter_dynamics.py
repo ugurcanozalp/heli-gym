@@ -20,7 +20,9 @@ class HelicopterDynamics(DynamicSystem):
     _observations = ["POWER", "TAS", "AOA", "SSLIP", "N_VEL", "E_VEL", "DES_RATE", 
         "ROLL", "PITCH", "YAW", "ROLL_RATE", "PITCH_RATE", "YAW_RATE", 
         "LON_ACC", "LAT_ACC", "DWN_ACC", "N_POS", "E_POS", "ALTITUDE", "GROUND_ALTITUDE"]
-    
+
+    n_obs = int(20)
+    n_act = int(4) 
     def __init__(self, params, dt):
         super(HelicopterDynamics, self).__init__(dt)
         self.HELI = params['HELI']
@@ -493,7 +495,8 @@ class HelicopterDynamics(DynamicSystem):
 
         y = self.__trim_fcn(x)
         tol = (y-y_target).transpose()@(y-y_target)
-        while tol>EPS**2:
+        tol_new = float('inf')
+        while tol>EPS:
             dydx = []
             for i in range(n_vars):
                 dxi = np.zeros(n_vars); dxi[i]+=EPS
@@ -501,9 +504,16 @@ class HelicopterDynamics(DynamicSystem):
                 dydx.append(dydxi)
 
             dydx = np.stack(dydx, axis=-1)
-            x = x - 0.4*np.linalg.inv(dydx)@(y-y_target) # decrease step by multiplying 0.2 to guarantee convergence.
-            y = self.__trim_fcn(x)
-            tol = (y-y_target).transpose()@(y-y_target)
+            step_dir = np.linalg.inv(dydx)@(y-y_target)
+            step_size = 1.0
+            while tol_new > tol - EPS:
+                x_new = x - step_size*step_dir # candidate new step
+                y_new = self.__trim_fcn(x_new)
+                tol_new = (y_new-y_target).transpose()@(y_new-y_target)
+                step_size *= 0.5
+
+            x, y, tol = x_new, y_new, tol_new
+            print(tol)
 
         # Finalize the trim algorithm by assigning solved states to the system.
         self.state['vi_mr'] = x[0:1]*self.MR['V_TIP']

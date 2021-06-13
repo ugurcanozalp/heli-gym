@@ -1,5 +1,5 @@
 from gym.envs.registration import register
-from heligym.envs import Heli, HeliHover
+from heligym.envs import Heli, HeliHover, HeliForwardFlight, HeliObliqueFlight
 
 register(
     id='Heli-v0',
