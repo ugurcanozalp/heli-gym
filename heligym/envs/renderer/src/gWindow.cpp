@@ -10,7 +10,6 @@ Window::Window(const unsigned int SCR_WIDTH,
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    //glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
     // Handle for Apple.
@@ -70,9 +69,6 @@ Window::Window(const unsigned int SCR_WIDTH,
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui_ImplGlfw_InitForOpenGL(this->window, true);
     ImGui_ImplOpenGL3_Init("#version 150");
-
-    // Add first item of guiOBS as FPS.
-    this->add_item_to_guiText(&this->guiOBS, "FPS : %3.f", &this->FPS);
 
     // Create Uniform Buffer Object to reduce need memory in GPU
 
@@ -151,7 +147,7 @@ void Window::render()
 
         // Draw objects.
         this->draw();     
-        
+
         // Render gui.
         this->renderGUI();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -231,18 +227,24 @@ void Window::renderGUI()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Set Observation text location and size.
-    ImVec2 info_pos = ImVec2(30.0f, 30.0f);
-    ImGui::SetNextWindowPos(info_pos);
-    ImGui::SetNextWindowSize(ImVec2(250, 0));
-
-    // Render Observations text.
-    ImGui::Begin("Observations!");
-    for (int i = 0; i < this->guiOBS.size(); i++)
+    for (int s = 0; s < this->v_guiTextSection.size(); s++)
     {
-        ImGui::Text(this->guiOBS[i].str, *this->guiOBS[i].val);
+        // Set window position and size.
+        ImGui::SetNextWindowPos(this->v_guiTextSection[s]->position);
+        ImGui::SetNextWindowSize(this->v_guiTextSection[s]->size);
+
+        // Render texts.
+        std::vector<guiText> v_guiText = *this->v_guiTextSection[s]->textVector;
+        
+        ImGui::Begin(this->v_guiTextSection[s]->title.c_str());
+        
+        for (int i = 0; i < v_guiText.size(); i++)
+        {
+            ImGui::Text(v_guiText[i].str, *v_guiText[i].val);
+        }
+        
+        ImGui::End();
     }
-    ImGui::End();
 
     // Render the gui.
     ImGui::Render();
@@ -334,18 +336,34 @@ void Window::draw()
 }
 
 
-void Window::add_item_to_guiText(std::vector<guiText>* _guiText, const char* str, float* val)
+int Window::create_guiText(const char* title, ImVec2 position, ImVec2 size)
+{
+    guiTextSection* temp = new guiTextSection();
+    temp->title = title;
+    temp->textVector = new std::vector<guiText>();
+    temp->position = position;
+    temp->size = size;
+    this->v_guiTextSection.push_back(temp);
+    
+    return this->v_guiTextSection.size() - 1;
+}
+
+
+void Window::add_item_to_guiText(int v_guiText_ind, const char* str, float* val)
 {
     guiText* temp = new guiText((char*) str, val);
-    _guiText->push_back(*temp);
+    this->v_guiTextSection[v_guiText_ind]->textVector->push_back(*temp);
     delete temp;
 }
 
 
-void Window::set_guiOBS( float* val)
+void Window::set_guiText(int v_guiText_ind, float* val)
 {
-    for (int i = 0; i < this->guiOBS.size(); i++)
+    std::vector<guiText>* temp = this->v_guiTextSection[v_guiText_ind]->textVector;
+    for (int i = 0; i < temp->size(); i++)
     {
-        this->guiOBS[i + 1].val = &val[i] ;
+        guiText* tgT = &temp->at(i);
+        tgT->val = &val[i];
     }
 }
+

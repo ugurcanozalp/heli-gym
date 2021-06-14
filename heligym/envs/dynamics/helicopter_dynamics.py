@@ -513,7 +513,6 @@ class HelicopterDynamics(DynamicSystem):
                 step_size *= 0.5
 
             x, y, tol = x_new, y_new, tol_new
-            print(tol)
 
         # Finalize the trim algorithm by assigning solved states to the system.
         self.state['vi_mr'] = x[0:1]*self.MR['V_TIP']

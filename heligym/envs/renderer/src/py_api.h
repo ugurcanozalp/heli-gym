@@ -72,11 +72,16 @@ extern "C" RENDERER_API void hide_window(Window* window);
 // Show the window.
 extern "C" RENDERER_API void show_window(Window* window);
 
-// Add the guiText to guiOBS.
-extern "C" RENDERER_API void add_guiOBS(Window* window, int size, char** _str, float* _val);
+// Create guiText vector.
+extern "C" RENDERER_API int create_guiTextVector(Window * window, const char* title,
+													float pos_x, float pos_y,
+													float size_x, float size_y);
 
-// Set the guiText of guiOBS.
-extern "C" RENDERER_API void set_guiOBS(Window* window, float* _val);
+// Add the str and val to guiText vector.
+extern "C" RENDERER_API void add_guiText(Window* window, int v_guiText_ind, int size, char** _str, float* _val);
+
+// Set the guiText of vector.
+extern "C" RENDERER_API void set_guiText(Window* window, int v_guiText_ind, float* _val);
 
 // Rotate the model Main Rotor with each angle which are in radians.
 extern "C" RENDERER_API void rotate_MR(Model* model, float phi, float theta, float psi);

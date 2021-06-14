@@ -121,19 +121,27 @@ void show_window(Window* window)
 	glfwShowWindow(window->window);
 }
 
+int create_guiTextVector(Window* window, const char* title,
+									float pos_x, float pos_y,
+									float size_x, float size_y)
+{
+	ImVec2 pos = ImVec2(pos_x, pos_y);
+	ImVec2 size = ImVec2(size_x, size_y);
+	return window->create_guiText(title, pos, size);
+}
 
-void add_guiOBS(Window* window, int size, char** _str, float* _val)
+void add_guiText(Window* window, int v_guiText_ind, int size, char** _str, float* _val)
 {
 	for (int i = 0; i < size; i++)
 	{
-		window->add_item_to_guiText(&window->guiOBS, _str[i], &_val[i] );
+		window->add_item_to_guiText(v_guiText_ind, _str[i], &_val[i] );
 	}
 }
 
 
-void set_guiOBS(Window* window, float* _val)
+void set_guiText(Window* window, int v_guiText_ind, float* _val)
 {
-	window->set_guiOBS(_val);
+	window->set_guiText(v_guiText_ind, _val);
 }
 
 

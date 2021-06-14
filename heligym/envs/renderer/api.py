@@ -181,31 +181,59 @@ class Renderer(object):
         """
         pyapi.show_window(self.window)
 
-    def add_guiOBS(self, str, val):
+    def create_guiText(self, title, pos_x, pos_y, size_x, size_y):
         """
-            Add guiOBS text. 
+            Create guiText for render text in gui. 
+            
+            It returns guiText index.
+            
+            Arguments:
+            ----------
+
+            >>> title    : Title of guiText.
+            >>> type     : string 
+
+            >>> pos_x    : Position of guiText in x.
+            >>> type     : float
+
+            >>> pos_y    : Position of guiText in y.
+            >>> type     : float
+
+            >>> size_x   : Size of guiText in x.
+            >>> type     : float
+
+            >>> size_y   : Size of guiText in y.
+            >>> type     : float
+        """
+        guiText = pyapi.create_guiText(self.window, title, (pos_x, pos_y), (size_x, size_y))
+        return guiText
+
+    def add_guiText(self, guiText, str, val):
+        """
+            Add str and val to guiText. 
             Format should be in printf-style format.
-            \n * str should be encoded by bytes with `utf-8`.
             \n * There should be 1 val for printing and vals should be numpy array.
             
             \n Ex 1:
-            >>> string_to_gui = [bytes('hello', 'utf-8')]
-            >>> add_guiOBS(string_to_gui, 0) # 0 for non values
+            >>> guiText = create_guiText(pos_x, pos_y, size_x, size_y)
+            >>> string_to_gui = ['hello']
+            >>> add_guiText(guiText, string_to_gui, 0) # 0 for non values
 
             \n Ex 2:
-            >>> string_to_gui = [bytes('the value %3.2f', 'utf-8')]
+            >>> guiText = create_guiText(pos_x, pos_y, size_x, size_y)
+            >>> string_to_gui = ['the value %3.2f']
             >>> value_to_gui = [5.2]
-            >>> add_guiOBS(string_to_gui, value_to_gui)
+            >>> add_guiText(guiText, string_to_gui, value_to_gui)
 
             str and val are should be list.
         """
-        pyapi.add_guiOBS(self.window, str, val)
+        pyapi.add_guiText(self.window, guiText, str, val)
 
-    def set_guiOBS(self, str, val):
+    def set_guiText(self, guiText, str, val):
         """
-            Set guiOBS text.
+            Set guiText.
             str and val are should be list.
         """
-        pyapi.set_guiOBS(self.window, str, val)
+        pyapi.set_guiText(self.window, guiText, str, val)
 
     

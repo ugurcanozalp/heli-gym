@@ -94,36 +94,40 @@ class Heli(gym.Env, EzPickle):
         self.reward_weight = self.default_reward_weight if reward_weight is None else reward_weight
 
     def __create_guiINFO_text(self):
+        self.guiINFO_ID = self.renderer.create_guiText("Observations", 30.0, 30.0, 250.0, 0.0)
         self.guiINFO_text = []
-        self.guiINFO_text.append( bytes( "POWER      : %5.2f hp" , 'utf-8'))
-        self.guiINFO_text.append( bytes( "TAS        : %5.2f ft/s", 'utf-8'))
-        self.guiINFO_text.append( bytes( "AOA        : %5.2f °", 'utf-8'))
-        self.guiINFO_text.append( bytes( "SSLIP      : %5.2f °", 'utf-8'))
-        self.guiINFO_text.append( bytes( "N_VEL      : %5.2f ft/s", 'utf-8'))
-        self.guiINFO_text.append( bytes( "E_VEL      : %5.2f ft/s", 'utf-8'))
-        self.guiINFO_text.append( bytes( "DES_RATE   : %5.2f ft/s", 'utf-8'))
-        self.guiINFO_text.append( bytes( "ROLL       : %5.2f °", 'utf-8'))
-        self.guiINFO_text.append( bytes( "PITCH      : %5.2f °", 'utf-8'))
-        self.guiINFO_text.append( bytes( "YAW        : %5.2f °", 'utf-8'))
-        self.guiINFO_text.append( bytes( "ROLL_RATE  : %5.2f °/sec", 'utf-8'))
-        self.guiINFO_text.append( bytes( "PITCH_RATE : %5.2f °/sec", 'utf-8'))
-        self.guiINFO_text.append( bytes( "YAW_RATE   : %5.2f °/sec", 'utf-8'))
-        self.guiINFO_text.append( bytes( "LON_ACC    : %5.2f ft/sec^2", 'utf-8'))
-        self.guiINFO_text.append( bytes( "LAT_ACC    : %5.2f ft/sec^2", 'utf-8'))
-        self.guiINFO_text.append( bytes( "DOWN_ACC   : %5.2f ft/sec^2", 'utf-8'))
-        self.guiINFO_text.append( bytes( "N_POS      : %5.2f ft", 'utf-8'))
-        self.guiINFO_text.append( bytes( "E_POS      : %5.2f ft", 'utf-8'))
-        self.guiINFO_text.append( bytes( "ALTITUDE   : %5.2f ft", 'utf-8'))
-        self.guiINFO_text.append( bytes( "GR_ALT     : %5.2f ft", 'utf-8'))
+        self.guiINFO_text.append("FPS        : %3.0f ")
+        self.guiINFO_text.append("POWER      : %5.2f hp" )
+        self.guiINFO_text.append("TAS        : %5.2f ft/s")
+        self.guiINFO_text.append("AOA        : %5.2f °")
+        self.guiINFO_text.append("SSLIP      : %5.2f °")
+        self.guiINFO_text.append("N_VEL      : %5.2f ft/s")
+        self.guiINFO_text.append("E_VEL      : %5.2f ft/s")
+        self.guiINFO_text.append("DES_RATE   : %5.2f ft/s")
+        self.guiINFO_text.append("ROLL       : %5.2f °")
+        self.guiINFO_text.append("PITCH      : %5.2f °")
+        self.guiINFO_text.append("YAW        : %5.2f °")
+        self.guiINFO_text.append("ROLL_RATE  : %5.2f °/sec")
+        self.guiINFO_text.append("PITCH_RATE : %5.2f °/sec")
+        self.guiINFO_text.append("YAW_RATE   : %5.2f °/sec")
+        self.guiINFO_text.append("LON_ACC    : %5.2f ft/sec^2")
+        self.guiINFO_text.append("LAT_ACC    : %5.2f ft/sec^2")
+        self.guiINFO_text.append("DOWN_ACC   : %5.2f ft/sec^2")
+        self.guiINFO_text.append("N_POS      : %5.2f ft")
+        self.guiINFO_text.append("E_POS      : %5.2f ft")
+        self.guiINFO_text.append("ALTITUDE   : %5.2f ft")
+        self.guiINFO_text.append("GR_ALT     : %5.2f ft")
 
     def __add_to_guiText(self):
-        self.renderer.add_guiOBS(self.guiINFO_text, self.heli_dyn.observation)        
+        info_val = np.array(self.renderer.get_fps())
+        info_val = np.append(info_val, self.heli_dyn.observation)
+        self.renderer.add_guiText(self.guiINFO_ID, self.guiINFO_text, info_val) 
 
     def render(self):
-        val = self.heli_dyn.observation
-        val = np.append(val, np.array([0.3, 0.2]))
-
-        self.renderer.set_guiOBS(self.guiINFO_text, val)
+        info_val = np.array(self.renderer.get_fps())
+        info_val = np.append(info_val, self.heli_dyn.observation)
+        
+        self.renderer.set_guiText(self.guiINFO_ID, self.guiINFO_text, info_val)
         
         self.renderer.rotate_MR(self.heli_obj, 
                                 self.heli_dyn.state['betas'][1],
@@ -169,7 +173,6 @@ class Heli(gym.Env, EzPickle):
         self.time_counter += DT
         # Turbulence calculations
         pre_observations = self.heli_dyn.observation
-        h_gr = self.heli_dyn.ground_touching_altitude()
         wind_action = np.concatenate([pre_observations[4:7], pre_observations[19:]])
         self.wind_dyn.step(wind_action)
         wind_turb_vel = self.wind_dyn.observation

@@ -94,9 +94,9 @@ class WindDynamics(DynamicSystem):
         vel_inf = np.linalg.norm(vel_inf_ned)
         h_gr = action[3]
         Lu, Lv, Lw, sigma_u, sigma_v, sigma_w, turb_azimuth = self._calc_params(float(h_gr), vel_inf_ned)
-        t_u = Lu/vel_inf
-        t_v = Lv/vel_inf
-        t_w = Lw/vel_inf
+        t_u = Lu/(vel_inf + EPS)
+        t_v = Lv/(vel_inf + EPS)
+        t_w = Lw/(vel_inf + EPS)
         
         usdot = np.array([1/t_u*(self.eta[0] - us[0])])
         vsdot = np.array([1/(4*t_v**2)*(self.eta[1] - vs[1]) - 1/t_v*vs[0], 

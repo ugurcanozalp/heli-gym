@@ -25,6 +25,14 @@ struct guiText
     guiText(char* _str, float* _val) { str = _str; val = _val; }
 };
 
+struct guiTextSection
+{
+    std::vector<guiText>* textVector;
+    std::string title;
+    ImVec2 position;
+    ImVec2 size;
+};
+
 // Class for GLFW-Window.
 class Window
 {
@@ -74,9 +82,9 @@ public:
     float FPS_limit = 100.0; 
     std::chrono::nanoseconds dt{static_cast<long int>( 1000000000.0f/this->FPS_limit)};
 
-    // Observation text vector to print multiple messages which
-    // based on guiText structure.
-    std::vector<guiText> guiOBS;
+    // Text vector pointer vector which stores different 
+    // guiTextSection pointer.
+    std::vector<guiTextSection*> v_guiTextSection;
 
     // Basic Window constructor.
     Window() {};
@@ -92,8 +100,14 @@ public:
     // Render the Dear ImGui.
     void renderGUI();
 
-    // Setting Observation text for Dear ImGui.
-    void set_guiOBS(float* val);
+    // Create empty guiText vector and its adress.
+    int create_guiText(const char* title, ImVec2 position, ImVec2 size);
+
+    // Adding str and val to related guiText vector such as guiOBS.
+    void add_item_to_guiText(int v_guiText_ind, const char* str, float* val);
+
+    // Setting guiText for Dear ImGui.
+    void set_guiText(int v_guiText_ind, float* val);
 
     // Adding model as permanent drawable objects of the Window.
     // It drawing the model until the window closed.
@@ -113,9 +127,6 @@ public:
 
     // When mouse scroll changed (wheel rotate etc.), GLFW call this function.
     void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
-    // Adding str and val to related guiText vector such as guiOBS.
-    void add_item_to_guiText(std::vector<guiText>* guiText, const char* str, float* val);
 
     // GLFW need static callback functions. To handle it, some capsulation should
     // be done. This function makes it.

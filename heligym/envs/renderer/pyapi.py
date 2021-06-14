@@ -218,27 +218,42 @@ def show_window(window):
     lib.show_window(window)
 
 ###################################################################################
-lib.add_guiOBS.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p), np.ctypeslib.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS')]
-lib.add_guiOBS.restype = ctypes.c_void_p
+lib.create_guiTextVector.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+lib.create_guiTextVector.restype = ctypes.c_int
 
-def add_guiOBS(window, str, val):
+def create_guiText(window, title, pos, size):
     """
-        Add the guiText to guiOBS.
+        Create guiText vector for guiTextSection.        
     """
-    str_arr = (ctypes.c_char_p * (len(str)))()    
-    str_arr[:] = str
-
-    lib.add_guiOBS(window, len(str), str_arr, val.astype(np.float32) )
+    assert type(pos) == tuple and len(pos) == 2, 'Make sure that position of guiText should be tuple and has 2 element.'
+    assert type(size) == tuple and len(size) == 2, 'Make sure that size of guiText should be tuple and has 2 element.'
+    return lib.create_guiTextVector(window, ctypes.c_char_p(_to_encode(title)), pos[0], pos[1], size[0], size[1])
 
 ###################################################################################
-lib.set_guiOBS.argtypes = [ctypes.c_void_p, np.ctypeslib.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS')]
-lib.set_guiOBS.restype = ctypes.c_void_p
+lib.add_guiText.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p), np.ctypeslib.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS')]
+lib.add_guiText.restype = ctypes.c_void_p
 
-def set_guiOBS(window, str, val):
+def add_guiText(window, guiText, strn, val):
     """
-        Set the guiText of guiOBS.
+        Add the str and val to guiText on window.
     """
-    lib.set_guiOBS(window, val.astype(np.float32) )
+    assert type(strn) == list, 'Please make sure that `str` values in form of list.'
+    for ind, item in enumerate(strn):
+        strn[ind] = bytes(str(item), 'utf-8')
+    strn_arr = (ctypes.c_char_p * (len(strn)))()    
+    strn_arr[:] = strn
+
+    lib.add_guiText(window, guiText, len(strn), strn_arr, val.astype(np.float32) )
+
+###################################################################################
+lib.set_guiText.argtypes = [ctypes.c_void_p, ctypes.c_int, np.ctypeslib.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS')]
+lib.set_guiText.restype = ctypes.c_void_p
+
+def set_guiText(window, guiText, str, val):
+    """
+        Set the str and val to guiText on window.
+    """
+    lib.set_guiText(window, guiText, val.astype(np.float32) )
 
 ###################################################################################
 lib.rotate_MR.argtypes = [ctypes.c_void_p, ctypes.c_float, 
