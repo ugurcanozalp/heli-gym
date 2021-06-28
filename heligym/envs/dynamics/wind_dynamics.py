@@ -69,7 +69,7 @@ class WindDynamics(DynamicSystem):
             Lw = 0.5*Lu
             sigma = self.TEP.get_value_2D(self.turbulence_level, h_gr)
             sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
-            turb_azimuth = np.atan2(vel_inf_ned[1], vel_inf_ned[0])
+            turb_azimuth = np.arctan2(vel_inf_ned[1], vel_inf_ned[0])
         else: # Medium-altitude turbulence which is interpolation of 1000 ft (Low-altitude) and 2000 ft (high-altitude)
             Lu = 1000 + (h_gr - 1000.0) / 1000.0 * 750.0
             Lv = 0.5*Lu
@@ -77,7 +77,7 @@ class WindDynamics(DynamicSystem):
             sigma = 0.1 * w20 + (h_gr - 1000.0) / 1000.0 * (self.TEP.get_value_2D(self.turbulence_level, h_gr) - 0.1 * w20)
             sigma_u, sigma_v, sigma_w = sigma, sigma, sigma
             r = (h_gr - 1000.0) / 1000.0
-            turb_azimuth = np.atan2(vel_inf_ned[1]*r + self.wind_mean_ned[1]*(1-r), 
+            turb_azimuth = np.arctan2(vel_inf_ned[1]*r + self.wind_mean_ned[1]*(1-r), 
                 vel_inf_ned[0]*r + self.wind_mean_ned[0]*(1-r))
 
         return Lu, Lv, Lw, sigma_u, sigma_v, sigma_w, turb_azimuth

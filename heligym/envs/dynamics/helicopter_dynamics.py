@@ -3,6 +3,7 @@ import numpy as np
 import os
 import copy
 import imageio
+import time
 
 from .kinematic import euler_to_rotmat, pqr_to_eulerdot_mat
 from .dynamics import DynamicSystem, State
@@ -31,6 +32,8 @@ class HelicopterDynamics(DynamicSystem):
         self.__precalculations()
         self.set_wind() # wind velocity in earth frame:
         self.__register_states()
+        self.init_state = self.state
+        self.init_state_dots = self.state_dots
         hmap_img = imageio.imread(os.environ['HELIGYM_RESOURCE_DIR'] + self.ENV["HMAP_PATH"])
         hmap_img = hmap_img/np.iinfo(hmap_img.dtype).max
         normal_img = imageio.imread(os.environ['HELIGYM_RESOURCE_DIR'] + self.ENV["NMAP_PATH"])
@@ -69,6 +72,8 @@ class HelicopterDynamics(DynamicSystem):
         self._register_state('xyz', np.zeros(3, dtype=np.float))
               
     def reset(self, trim_cond={}):
+        self.state = self.init_state
+        self.state_dots = self.init_state_dots
         input_trim_cond = copy.deepcopy(self.default_trim_cond)
         input_trim_cond.update(trim_cond)
         self.trim(input_trim_cond)
@@ -161,15 +166,28 @@ class HelicopterDynamics(DynamicSystem):
         x_ = self.ENV["NS_MAX"] / self.terrain_hmap.shape[0] # terrain x size per pixel
         y_ = self.ENV["EW_MAX"] / self.terrain_hmap.shape[1] # terrain y size per pixel
 
-        x_loc = self.state['xyz'][0] / x_ + self.terrain_hmap.shape[0] // 2
-        y_loc = self.state['xyz'][1] / y_ + self.terrain_hmap.shape[1] // 2
+        x_loc = np.nan_to_num(self.state['xyz'][0]) / x_ + self.terrain_hmap.shape[0] // 2
+        y_loc = np.nan_to_num(self.state['xyz'][1]) / y_ + self.terrain_hmap.shape[1] // 2
+
+        # make sure that get height from hmap
+        if x_loc < 0:
+            x_loc = 0
+        elif x_loc > self.terrain_hmap.shape[0] - 1:
+            x_loc = self.terrain_hmap.shape[0] - 1
+
+        if y_loc < 0:
+            y_loc = 0
+        elif y_loc > self.terrain_hmap.shape[0] - 1:
+            y_loc = self.terrain_hmap.shape[0] - 1
 
         x_ind =  math.floor(x_loc)
         y_ind =  math.floor(y_loc)
 
-        middle = self.terrain_hmap[x_ind, y_ind]
-        north = self.terrain_hmap[x_ind+1, y_ind]
-        east = self.terrain_hmap[x_ind, y_ind+1]
+        middle = self.terrain_hmap[y_ind, x_ind]
+        if x_ind == 1023: x_ind = 1022
+        if y_ind == 1023: y_ind = 1022
+        north = self.terrain_hmap[y_ind, x_ind + 1]
+        east = self.terrain_hmap[y_ind + 1, x_ind]
 
         height = middle + (north - middle) * (x_loc - x_ind) + (east - middle) * (y_loc - y_ind)
         return height
@@ -284,6 +302,7 @@ class HelicopterDynamics(DynamicSystem):
         wa_fus = uvw_air[2]-vi_mr[0] # Include rotor downwash on fuselage
         wa_fus += (wa_fus>0)*EPS # Make it nonzero!
         d_fw=(uvw_air[0]/(-wa_fus)*(self.MR['H']-self.FUS['H']))-(self.FUS['D']-self.MR['D']) # Pos of downwash on fuselage
+        d_fw *= self.FUS['COR'] #emprical correction
         X_FUS = 0.5*rho*self.FUS['XUU']*np.abs(uvw_air[0])*uvw_air[0]
         Y_FUS = 0.5*rho*self.FUS['YVV']*np.abs(uvw_air[1])*uvw_air[1]
         Z_FUS = 0.5*rho*self.FUS['ZWW']*np.abs(wa_fus)*wa_fus
@@ -475,11 +494,13 @@ class HelicopterDynamics(DynamicSystem):
         self.state['euler'][-1] = params["yaw"]
         self.state['psi_mr'][0] = params["psi_mr"]
         self.state['psi_tr'][0] = params["psi_tr"]
-        cg_from_bottom = -self.ground_touching_altitude()
         self.state['xyz'][0] = params["xy"][0]
         self.state['xyz'][1] = params["xy"][1]
+        cg_from_bottom = -self.ground_touching_altitude()
         self.state['xyz'][2] = cg_from_bottom-params["gr_alt"]
         self.last_action = np.zeros(4)  
+
+        s_time = time.time()
 
         n_vars = 16
         y_target = np.zeros(n_vars, dtype=np.float)
@@ -513,6 +534,9 @@ class HelicopterDynamics(DynamicSystem):
                 step_size *= 0.5
 
             x, y, tol = x_new, y_new, tol_new
+
+            if (time.time() - s_time) > 5.0:
+                self.trim(self.default_trim_cond)
 
         # Finalize the trim algorithm by assigning solved states to the system.
         self.state['vi_mr'] = x[0:1]*self.MR['V_TIP']

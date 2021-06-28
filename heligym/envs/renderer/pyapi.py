@@ -243,6 +243,9 @@ def add_guiText(window, guiText, strn, val):
     strn_arr = (ctypes.c_char_p * (len(strn)))()    
     strn_arr[:] = strn
 
+    if type(val) != np.ndarray:
+        val = np.array(val)
+
     lib.add_guiText(window, guiText, len(strn), strn_arr, val.astype(np.float32) )
 
 ###################################################################################

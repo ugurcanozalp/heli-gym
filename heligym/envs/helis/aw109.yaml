@@ -68,6 +68,7 @@ HELI:
         XUU    : -10.8 # [ft^2] parasite
         YVV    : -167 # [ft^2] sideward
         ZWW    : -85 # [ft^2] quadratic
+        COR    : 3 # emprical correction for fus. a.c shift magnification
 
     HT:
         FS     : 330 # [in] horizontal CP loc. in FS-ref station (0.25 chord)
