@@ -184,8 +184,8 @@ class HelicopterDynamics(DynamicSystem):
         y_ind =  math.floor(y_loc)
 
         middle = self.terrain_hmap[y_ind, x_ind]
-        if x_ind == 1023: x_ind = 1022
-        if y_ind == 1023: y_ind = 1022
+        if x_ind == self.terrain_hmap.shape[0] - 1 : x_ind = self.terrain_hmap.shape[0] - 2 
+        if y_ind == self.terrain_hmap.shape[1] - 1 : y_ind = self.terrain_hmap.shape[1] - 2
         north = self.terrain_hmap[y_ind, x_ind + 1]
         east = self.terrain_hmap[y_ind + 1, x_ind]
 
@@ -444,7 +444,7 @@ class HelicopterDynamics(DynamicSystem):
             kx = K * (xyz[2] + self.ground_touching_altitude())
             force_ground = earth2body@ np.array([0.0, 0.0, -(cxdot + kx) + EPS])
             force_total += force_ground
-
+            
         body_acc = force_total/self.HELI['M']
         uvw_dot = body_acc - np.cross(pqr, uvw)
         pqr_dot = np.linalg.inv(self.HELI['I'])@(moment_total - np.cross(pqr, self.HELI['I']@pqr))

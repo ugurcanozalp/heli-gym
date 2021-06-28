@@ -190,7 +190,7 @@ class Heli(gym.Env, EzPickle):
         reward, successed_step = self._calculate_reward()
         info = self._get_info()
         done = info['failed'] or info['successed'] or info['time_up'] or reward == np.nan
-        self.successed_time = self.successed_time + DT if successed_step else 0
+        self.successed_time += DT if successed_step else 0
         return observation, reward, done, info
 
     def reset(self):
@@ -228,8 +228,8 @@ class Heli(gym.Env, EzPickle):
         return self.time_counter > self.max_time
 
     def _calculate_reward(self):
-        obs_error = (self.heli_dyn.observation - self.task_target) * self.obs_mask
-        obs_prev_error = (self.heli_dyn.previous_observation - self.task_target) * self.obs_mask
+        obs_error = self.heli_dyn.observation - self.task_target
+        obs_prev_error = self.heli_dyn.previous_observation - self.task_target
         cost_base = (obs_prev_error).transpose()@self.reward_weight@(obs_prev_error)
         cost_terminal = obs_error.transpose()@self.reward_weight@obs_error
         rule = (cost_terminal - cost_base) / 1000.0 - 60000.0 / cost_terminal
@@ -250,6 +250,16 @@ class HeliHover(Heli):
         max_time = 40.0
         task_target = Heli.default_task_target
         task_target[18] = 3000.0
+
+        trim_cond = {
+            "yaw": 0.0,
+            "yaw_rate": 0.0,
+            "ned_vel": [0.0, 0.0, 0.0],
+            "gr_alt": 10.0,
+            "xy": [0.0, 0.0],
+            "psi_mr": 0.0,
+            "psi_tr": 0.0
+        }
         
         reward_weight = Heli.default_reward_weight
         reward_weight[7,7] = 0.9
@@ -262,60 +272,10 @@ class HeliHover(Heli):
         reward_weight[17,17] = 1.0
         reward_weight[18,18] = 1.0
 
-        self.obs_mask[4:20] = 1.0
-
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_reward_weight(reward_weight)
-        self.new_start_hover_point()
-
-    def new_start_hover_point(self, start_point=(0.0, 0.0, 0.0), alt_low = 0.0, alt_hight = 10.0):
-        if start_point == None:
-            gr_alt =  alt_low + (alt_hight - alt_low) * np.random.rand()
-            xy = np.random.randn(2) * 1000
-        else:
-            gr_alt = start_point[2]
-            xy = [start_point[0],start_point[1]]
-
-        if gr_alt < 0:
-            gr_alt = 0
-        
-        gr_alt = np.round(gr_alt, 2)
-
-        trim_cond = {
-            "yaw": 0.0,
-            "yaw_rate": 0.0,
-            "ned_vel": [0.0, 0.0, 0.0],
-            "gr_alt": gr_alt,
-            "xy": xy,
-            "psi_mr": 0.0,
-            "psi_tr": 0.0
-        }
         self.set_trim_cond(trim_cond)
-
-    def arange_observations(self, observations):
-        obs = self.task_target - observations
-        obs[0] /= 5000 # normalize HP
-        obs[1] /= 500 # normalize TAS
-        obs[2] /= 180 # normalize aoa
-        obs[3] /= 180 # normalize sslip
-        obs[4] /= 500 # normalize N_vel
-        obs[5] /= 500 # normalize E_vel
-        obs[6] /= 500 # normalize Des_rate
-        obs[7] /= 180 # normalize roll
-        obs[8] /= 180 # normalize pitch
-        obs[9] /= 180 # normalize yaw
-        obs[10] /= 360 # normalize roll_rate
-        obs[11] /= 360 # normalize pitch_rate
-        obs[12] /= 360 # normalize yaw_rate
-        obs[13] /= 1000 # normalize long_acc
-        obs[14] /= 1000 # normalize lat_acc
-        obs[15] /= 1000 # normalize down_acc
-        obs[16] /= 10000 # normalize n_pos
-        obs[17] /= 10000 # normalize e_pos
-        obs[18] /= 10000 # normalize alt
-        obs[19] /= 10000 # normalize gr_alt
-        return obs
 
 
 class HeliForwardFlight(Heli):
