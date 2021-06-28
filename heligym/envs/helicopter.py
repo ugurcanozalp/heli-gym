@@ -21,6 +21,7 @@ EPS         = 1e-10 # small value for divison by zero
 R2D         = 180/math.pi # Rad to deg
 D2R         = 1/R2D
 FT2MTR      = 0.3048 # ft to meter
+TAU         = 2*math.pi
 
 class Heli(gym.Env, EzPickle):
     metadata = {
@@ -53,12 +54,17 @@ class Heli(gym.Env, EzPickle):
         self.heli_dyn.set_wind(self.wind_dyn.wind_mean_ned) # set mean wind as wind so that helicopter trims accordingly
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.heli_dyn.n_obs,), dtype=np.float32)
         self.action_space = spaces.Box(-1, +1, (self.heli_dyn.n_act,), dtype=np.float32)
-        self.obs_mask = np.zeros(HelicopterDynamics.n_obs)
         self.successed_time = 0 # time counter for successing task through time.
         self.set_max_time()
         self.set_target()
         self.set_trim_cond()
         self.set_reward_weight()
+        self.normalizers = {
+                                "t": np.sqrt(4*self.heli_dyn.MR["R"]/self.heli_dyn.ENV["GRAV"]),
+                                "x": 2*self.heli_dyn.MR["R"],
+                                "v": np.sqrt(2*self.heli_dyn.MR["R"]*self.heli_dyn.ENV["GRAV"]),
+                                "a": self.heli_dyn.ENV["GRAV"]
+                            }
         
         self.renderer = Renderer(w=1024, h=768, title='heligym')
         self.renderer.set_fps(FPS)
@@ -111,12 +117,9 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append("ROLL_RATE  : %5.2f °/sec")
         self.guiINFO_text.append("PITCH_RATE : %5.2f °/sec")
         self.guiINFO_text.append("YAW_RATE   : %5.2f °/sec")
-        self.guiINFO_text.append("LON_ACC    : %5.2f ft/sec^2")
-        self.guiINFO_text.append("LAT_ACC    : %5.2f ft/sec^2")
-        self.guiINFO_text.append("DOWN_ACC   : %5.2f ft/sec^2")
         self.guiINFO_text.append("N_POS      : %5.2f ft")
         self.guiINFO_text.append("E_POS      : %5.2f ft")
-        self.guiINFO_text.append("ALTITUDE   : %5.2f ft")
+        self.guiINFO_text.append("ALT        : %5.2f ft")
         self.guiINFO_text.append("GR_ALT     : %5.2f ft")
 
     def __add_to_guiText(self):
@@ -180,7 +183,7 @@ class Heli(gym.Env, EzPickle):
         self.time_counter += DT
         # Turbulence calculations
         pre_observations = self.heli_dyn.observation
-        wind_action = np.concatenate([pre_observations[4:7], pre_observations[19:]])
+        wind_action = np.concatenate([pre_observations[4:7], pre_observations[16:]])
         self.wind_dyn.step(wind_action)
         wind_turb_vel = self.wind_dyn.observation
         # Helicopter dynamics calculations
@@ -230,15 +233,13 @@ class Heli(gym.Env, EzPickle):
     def _calculate_reward(self):
         obs_error = self.heli_dyn.observation - self.task_target
         obs_prev_error = self.heli_dyn.previous_observation - self.task_target
-        cost_base = (obs_prev_error).transpose()@self.reward_weight@(obs_prev_error)
+        cost_base = FPS*(obs_error - obs_prev_error).transpose()@self.reward_weight@obs_error
         cost_terminal = obs_error.transpose()@self.reward_weight@obs_error
-        rule = (cost_terminal - cost_base) / 1000.0 - 60000.0 / cost_terminal
-        reward = -np.tanh(rule)
-        successed_step = abs(reward) > 0.999
-        if successed_step:
-            reward *= 4
+        cost = cost_terminal + self.normalizers["t"]*cost_base
+        reward = -cost
+        successed_step = cost_terminal > 10
         #print(f"Cost base: {cost_base}")
-        #print(f"Cost terminal: {150000.0 / cost_terminal} {(cost_terminal - cost_base) / 1000.0 }")
+        #print(f"Cost terminal: {cost_terminal}")
         #print(f"Reward : {reward}")
         #print(f"Rule : {rule}")
         #print(f"Successed step :{successed_step}")
@@ -249,7 +250,7 @@ class HeliHover(Heli):
         Heli.__init__(self, heli_name=heli_name)
         max_time = 40.0
         task_target = Heli.default_task_target
-        task_target[18] = 3000.0
+        task_target[15] = 3000.0
 
         trim_cond = {
             "yaw": 0.0,
@@ -260,23 +261,20 @@ class HeliHover(Heli):
             "psi_mr": 0.0,
             "psi_tr": 0.0
         }
-        
-        reward_weight = Heli.default_reward_weight
-        reward_weight[7,7] = 0.9
-        reward_weight[8,8] = 0.9
-        reward_weight[9,9] = 0.9
-        reward_weight[10,10] = 0.8
-        reward_weight[11,11] = 0.8
-        reward_weight[12,12] = 0.8
-        reward_weight[16,16] = 1.0
-        reward_weight[17,17] = 1.0
-        reward_weight[18,18] = 1.0
-
+        t, x, v, a = self.normalizers["t"], self.normalizers["x"], self.normalizers["a"], self.normalizers["a"]
+        reward_multipliers = np.array([
+                [0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0],
+            ], dtype=np.float32)
+        reward_weight = reward_multipliers.transpose()@reward_multipliers
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_reward_weight(reward_weight)
         self.set_trim_cond(trim_cond)
-
 
 class HeliForwardFlight(Heli):
 
@@ -285,7 +283,7 @@ class HeliForwardFlight(Heli):
         max_time = 40.0
         task_target = Heli.default_task_target
         task_target[4:6] = np.array([100, 50])
-        task_target[18] = 2000.0
+        task_target[15] = 2000.0
         trim_cond = {
             "yaw": 0.0,
             "yaw_rate": 0.0,
@@ -295,10 +293,16 @@ class HeliForwardFlight(Heli):
             "psi_mr": 0.0,
             "psi_tr": 0.0
         }
-        reward_weight = Heli.default_reward_weight
-        reward_weight[4,4] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
-        reward_weight[5,5] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
-        reward_weight[18,18] = 1/self.heli_dyn.MR['R']**2
+        t, x, v, a = self.normalizers["t"], self.normalizers["x"], self.normalizers["a"], self.normalizers["a"]
+        reward_multipliers = np.array([
+                [0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0],
+                [0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0],
+            ], dtype=np.float32)
+        reward_weight = reward_multipliers.transpose()@reward_multipliers
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
@@ -310,7 +314,7 @@ class HeliObliqueFlight(Heli):
         Heli.__init__(self, heli_name=heli_name)
         max_time = 40.0
         task_target = Heli.default_task_target
-        task_target[4:7] = np.array([40.0,0.0,15.0], dtype=np.float)
+        task_target[4:7] = np.array([40.0,0.0,-15.0], dtype=np.float)
         trim_cond = {
             "yaw": 0.0,
             "yaw_rate": 0.0,
@@ -320,10 +324,16 @@ class HeliObliqueFlight(Heli):
             "psi_mr": 0.0,
             "psi_tr": 0.0
         }
-        reward_weight = Heli.default_reward_weight
-        reward_weight[4,4] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
-        reward_weight[5,5] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
-        reward_weight[6,6] = 1/(self.heli_dyn.MR['R']*self.heli_dyn.ENV['GRAV'])
+        t, x, v, a = self.normalizers["t"], self.normalizers["x"], self.normalizers["a"], self.normalizers["a"]
+        reward_multipliers = np.array([
+                [0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0],
+                [0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0],
+            ], dtype=np.float32)
+        reward_weight = reward_multipliers.transpose()@reward_multipliers
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
