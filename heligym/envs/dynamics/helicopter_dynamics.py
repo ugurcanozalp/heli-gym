@@ -515,7 +515,6 @@ class HelicopterDynamics(DynamicSystem):
 
         y = self.__trim_fcn(x)
         tol = (y-y_target).transpose()@(y-y_target)
-        tol_new = float('inf')
         while tol>EPS:
             dydx = []
             for i in range(n_vars):
@@ -526,12 +525,14 @@ class HelicopterDynamics(DynamicSystem):
             dydx = np.stack(dydx, axis=-1)
             step_dir = np.linalg.inv(dydx)@(y-y_target)
             step_size = 1.0
-            while tol_new > tol - EPS:
+            for j in range(10):
                 x_new = x - step_size*step_dir # candidate new step
                 y_new = self.__trim_fcn(x_new)
                 tol_new = (y_new-y_target).transpose()@(y_new-y_target)
                 step_size *= 0.5
+                if tol_new > tol: break
 
+            if j==9: break
             x, y, tol = x_new, y_new, tol_new
 
             if (time.time() - s_time) > 5.0:
