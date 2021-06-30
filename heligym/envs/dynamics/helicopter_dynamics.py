@@ -530,7 +530,7 @@ class HelicopterDynamics(DynamicSystem):
                 y_new = self.__trim_fcn(x_new)
                 tol_new = (y_new-y_target).transpose()@(y_new-y_target)
                 step_size *= 0.5
-                if tol_new > tol: break
+                if tol_new < tol: break
 
             if j==9: break
             x, y, tol = x_new, y_new, tol_new
