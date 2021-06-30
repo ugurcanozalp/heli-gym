@@ -30,8 +30,6 @@ class Heli(gym.Env, EzPickle):
     }
     # Default maximum time for an episode
     default_max_time = 40.0
-    # Default task target
-    default_task_target = np.zeros(HelicopterDynamics.n_obs)
     # Default trim condition, ground trim.
     default_trim_cond = {
         "yaw": 0.0,
@@ -42,7 +40,6 @@ class Heli(gym.Env, EzPickle):
         "psi_mr": 0.0,
         "psi_tr": 0.0
     }
-    default_reward_weight = np.zeros((HelicopterDynamics.n_obs,HelicopterDynamics.n_obs))
     def __init__(self, heli_name:str = "aw109"):
         EzPickle.__init__(self)
         yaml_path = os.path.join(os.path.dirname(__file__), "helis", heli_name + ".yaml")
@@ -58,7 +55,7 @@ class Heli(gym.Env, EzPickle):
         self.set_max_time()
         self.set_target()
         self.set_trim_cond()
-        self.set_reward_weight()
+        self.set_reward_weights()
         self.normalizers = {
                                 "t": np.sqrt(4*self.heli_dyn.MR["R"]/self.heli_dyn.ENV["GRAV"]),
                                 "x": 2*self.heli_dyn.MR["R"],
@@ -91,14 +88,16 @@ class Heli(gym.Env, EzPickle):
         self.task_duration = self.max_time/4 # [sec] Allowed time for successing task
 
     def set_target(self, target=None):
-        self.task_target = self.default_task_target if target is None else target
+        self.task_target = np.zeros(self.heli_dyn.n_obs) if target is None else target
 
     def set_trim_cond(self, trim_cond={}):
         self.trim_cond = self.default_trim_cond
         self.trim_cond.update(trim_cond)
 
-    def set_reward_weight(self, reward_weight=None):
-        self.reward_weight = self.default_reward_weight if reward_weight is None else reward_weight
+    def set_reward_weights(self, base_reward_weight=None, terminal_reward_weight=None):
+        zero_ = np.zeros((self.heli_dyn.n_obs,self.heli_dyn.n_obs))
+        self.base_reward_weight = zero_ if base_reward_weight is None else base_reward_weight
+        self.terminal_reward_weight = zero_ if terminal_reward_weight is None else terminal_reward_weight
 
     def __create_guiINFO_text(self):
         self.guiINFO_ID = self.renderer.create_guiText("Observations", 30.0, 30.0, 250.0, 0.0)
@@ -106,17 +105,17 @@ class Heli(gym.Env, EzPickle):
         self.guiINFO_text.append("FPS        : %3.0f ")
         self.guiINFO_text.append("POWER      : %5.2f hp" )
         self.guiINFO_text.append("TAS        : %5.2f ft/s")
-        self.guiINFO_text.append("AOA        : %5.2f °")
-        self.guiINFO_text.append("SSLIP      : %5.2f °")
+        self.guiINFO_text.append("AOA        : %5.2f rad")
+        self.guiINFO_text.append("SSLIP      : %5.2f rad")
         self.guiINFO_text.append("N_VEL      : %5.2f ft/s")
         self.guiINFO_text.append("E_VEL      : %5.2f ft/s")
         self.guiINFO_text.append("DES_RATE   : %5.2f ft/s")
-        self.guiINFO_text.append("ROLL       : %5.2f °")
-        self.guiINFO_text.append("PITCH      : %5.2f °")
-        self.guiINFO_text.append("YAW        : %5.2f °")
-        self.guiINFO_text.append("ROLL_RATE  : %5.2f °/sec")
-        self.guiINFO_text.append("PITCH_RATE : %5.2f °/sec")
-        self.guiINFO_text.append("YAW_RATE   : %5.2f °/sec")
+        self.guiINFO_text.append("ROLL       : %5.2f rad")
+        self.guiINFO_text.append("PITCH      : %5.2f rad")
+        self.guiINFO_text.append("YAW        : %5.2f rad")
+        self.guiINFO_text.append("ROLL_RATE  : %5.2f rad/sec")
+        self.guiINFO_text.append("PITCH_RATE : %5.2f rad/sec")
+        self.guiINFO_text.append("YAW_RATE   : %5.2f rad/sec")
         self.guiINFO_text.append("N_POS      : %5.2f ft")
         self.guiINFO_text.append("E_POS      : %5.2f ft")
         self.guiINFO_text.append("ALT        : %5.2f ft")
@@ -233,23 +232,28 @@ class Heli(gym.Env, EzPickle):
     def _calculate_reward(self):
         obs_error = self.heli_dyn.observation - self.task_target
         obs_prev_error = self.heli_dyn.previous_observation - self.task_target
-        cost_base = FPS*(obs_error - obs_prev_error).transpose()@self.reward_weight@obs_error
-        cost_terminal = obs_error.transpose()@self.reward_weight@obs_error
-        cost = cost_terminal + self.normalizers["t"]*cost_base
-        reward = -cost
-        successed_step = cost_terminal > 10
-        #print(f"Cost base: {cost_base}")
-        #print(f"Cost terminal: {cost_terminal}")
+        reward_terminal = -FPS*(obs_error - obs_prev_error).transpose()@self.terminal_reward_weight@obs_error
+        reward_base = -obs_error.transpose()@self.base_reward_weight@obs_error
+        cost_success = obs_error.transpose()@self.terminal_reward_weight@obs_error
+        successed_step = cost_success < 1.0
+        reward = reward_base + self.normalizers["t"]*reward_terminal
+        if successed_step:
+            reward += (1.0 - cost_success)
+
+        reward *= DT
+        
+        #print(f"reward terminal: {reward_terminal}")
+        #print(f"reward base: {reward_base}")
+        #print(f"cost success: {cost_success}")
         #print(f"Reward : {reward}")
-        #print(f"Rule : {rule}")
         #print(f"Successed step :{successed_step}")
         return reward, successed_step
 
 class HeliHover(Heli):
     def __init__(self, heli_name:str = "aw109"):
         Heli.__init__(self, heli_name=heli_name)
-        max_time = 40.0
-        task_target = Heli.default_task_target
+        max_time = Heli.default_max_time
+        task_target = np.zeros(self.heli_dyn.n_obs)
         task_target[15] = 3000.0
 
         trim_cond = {
@@ -262,26 +266,29 @@ class HeliHover(Heli):
             "psi_tr": 0.0
         }
         t, x, v, a = self.normalizers["t"], self.normalizers["x"], self.normalizers["a"], self.normalizers["a"]
-        reward_multipliers = np.array([
-                [0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0],
+        base_reward_multipliers = np.array([
+                [0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0],
+            ], dtype=np.float32)
+        terminal_reward_multipliers = np.array([
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0],
             ], dtype=np.float32)
-        reward_weight = reward_multipliers.transpose()@reward_multipliers
+        base_reward_weight = base_reward_multipliers.transpose()@base_reward_multipliers
+        terminal_reward_weight = terminal_reward_multipliers.transpose()@terminal_reward_multipliers
         self.set_max_time(max_time)
         self.set_target(task_target)
-        self.set_reward_weight(reward_weight)
+        self.set_reward_weights(base_reward_weight, terminal_reward_weight)
         self.set_trim_cond(trim_cond)
 
 class HeliForwardFlight(Heli):
 
     def __init__(self, heli_name:str = "aw109"):
         Heli.__init__(self, heli_name=heli_name)
-        max_time = 40.0
-        task_target = Heli.default_task_target
+        max_time = Heli.default_max_time
+        task_target = np.zeros(self.heli_dyn.n_obs)
         task_target[4:6] = np.array([100, 50])
         task_target[15] = 2000.0
         trim_cond = {
@@ -294,26 +301,29 @@ class HeliForwardFlight(Heli):
             "psi_tr": 0.0
         }
         t, x, v, a = self.normalizers["t"], self.normalizers["x"], self.normalizers["a"], self.normalizers["a"]
-        reward_multipliers = np.array([
-                [0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0],
+        base_reward_multipliers = np.array([
+                [0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0],
+            ], dtype=np.float32)
+        terminal_reward_multipliers = np.array([
                 [0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1/x,0],
             ], dtype=np.float32)
-        reward_weight = reward_multipliers.transpose()@reward_multipliers
+        base_reward_weight = base_reward_multipliers.transpose()@base_reward_multipliers
+        terminal_reward_weight = terminal_reward_multipliers.transpose()@terminal_reward_multipliers
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
-        self.set_reward_weight(reward_weight)
+        self.set_reward_weights(base_reward_weight, terminal_reward_weight)
 
 class HeliObliqueFlight(Heli):
 
     def __init__(self, heli_name:str = "aw109"):
         Heli.__init__(self, heli_name=heli_name)
-        max_time = 40.0
-        task_target = Heli.default_task_target
+        max_time = Heli.default_max_time
+        task_target = np.zeros(self.heli_dyn.n_obs)
         task_target[4:7] = np.array([40.0,0.0,-15.0], dtype=np.float)
         trim_cond = {
             "yaw": 0.0,
@@ -325,19 +335,22 @@ class HeliObliqueFlight(Heli):
             "psi_tr": 0.0
         }
         t, x, v, a = self.normalizers["t"], self.normalizers["x"], self.normalizers["a"], self.normalizers["a"]
-        reward_multipliers = np.array([
-                [0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,t/TAU,0,0,0,0],
+        base_reward_multipliers = np.array([
+                [0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0],
+            ], dtype=np.float32)
+        terminal_reward_multipliers = np.array([
                 [0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0,0],
                 [0,0,0,0,0,0,1/v,0,0,0,0,0,0,0,0,0,0],
             ], dtype=np.float32)
-        reward_weight = reward_multipliers.transpose()@reward_multipliers
+        base_reward_weight = base_reward_multipliers.transpose()@base_reward_multipliers
+        terminal_reward_weight = terminal_reward_multipliers.transpose()@terminal_reward_multipliers
         self.set_max_time(max_time)
         self.set_target(task_target)
         self.set_trim_cond(trim_cond)
-        self.set_reward_weight(reward_weight)
+        self.set_reward_weights(base_reward_weight, terminal_reward_weight)
 
 if __name__=='__main__':
     env = HeliHover()

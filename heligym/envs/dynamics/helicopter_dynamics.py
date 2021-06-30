@@ -475,8 +475,8 @@ class HelicopterDynamics(DynamicSystem):
             self.observation = np.array([power_total_hp, \
                 tas, aoa_deg, sideslip_deg, \
                 ned_vel[0], ned_vel[1], ned_vel[2], \
-                R2D*euler[0], R2D*euler[1], R2D*euler[2], \
-                R2D*pqr[0], R2D*pqr[1], R2D*pqr[2],
+                euler[0], euler[1], euler[2], \
+                pqr[0], pqr[1], pqr[2],
                 xyz[0], xyz[1], -xyz[2], alt_gr],
                 )
 
