@@ -43,11 +43,11 @@ class State(OrderedDict):
         selfcopy = deepcopy(self)
         if isinstance(rhs, State) and rhs.keys()==selfcopy.keys():
             for value, rhs_value in zip(selfcopy.values(), rhs.values()):
-                value -= rhs_value
+                value /= rhs_value
             return selfcopy
         else:
             for value in selfcopy.values():
-                value -= rhs
+                value /= rhs
             return selfcopy
 
     def __pow__(self, rhs):
@@ -72,10 +72,65 @@ class State(OrderedDict):
                 value = value % rhs
             return selfcopy
 
+class StateNumpy():
+    def __init__(self):
+        self.info = {}
+        self.size = 0
+        self.val = np.array([], dtype=np.float)
+
+    def __setitem__(self, name: str, value: np.ndarray):
+        if name in self.info.keys():
+            start, end = self.info[name][1]
+            self.val[start:end] = value
+        else:
+            self.info[name] = (value, (self.size, self.size + len(value)))
+            self.size += len(value)
+            self.val = np.append(self.val, value)
+
+    def __getitem__(self, name: str):
+        start, end = self.info[name][1]
+        return self.val[start:end]
+
+    def __add__(self, rhs):
+        arg = rhs.val if isinstance(rhs, StateNumpy) else rhs
+        val = self.val + arg
+        output = StateNumpy()
+        output.info = self.info
+        output.size = self.size
+        output.val = val
+        return output 
+
+    def __mul__(self, rhs):
+        arg = rhs.val if isinstance(rhs, StateNumpy) else rhs
+        val = self.val * arg
+        output = StateNumpy()
+        output.info = self.info
+        output.size = self.size
+        output.val = val
+        return output 
+
+    def __sub__(self, rhs):
+        arg = rhs.val if isinstance(rhs, StateNumpy) else rhs
+        val = self.val - arg
+        output = StateNumpy()
+        output.info = self.info
+        output.size = self.size
+        output.val = val
+        return output 
+
+    def __div__(self, rhs):
+        arg = rhs.val if isinstance(rhs, StateNumpy) else rhs
+        val = self.val / arg
+        output = StateNumpy()
+        output.info = self.info
+        output.size = self.size
+        output.val = val
+        return output 
+
 class DynamicSystem(object):
     def __init__(self, dt: float = 0.01):
-        self.state = State()
-        self.state_dots = State()
+        self.state = StateNumpy()
+        self.state_dots = StateNumpy()
         self.dt = dt
         self.last_action = None # should be filled after a step call
         self.observation = None # should be filled after a step call, or trim
@@ -109,20 +164,21 @@ class DynamicSystem(object):
         k2 = self.dynamics(self.state + k1 * (0.5*self.dt), action)
         k3 = self.dynamics(self.state + k2 * (0.5*self.dt), action)
         k4 = self.dynamics(self.state + k3 * self.dt, action, set_observation=True)
-        self.state += (k1 + k2*2 + k3*2 + k4)*(1/6 * self.dt)
+        self.state += (k1 + k2*2 + k3*2 + k4)*(0.16666666666666666 * self.dt)
         self.state_dots = k4
         self.last_action = action
         self.step_end()
-        # Solve system by Implicit Trapezoidal Rule a singel step.
+        ### Solve system by Implicit Trapezoidal Rule a singel step.
         #a = self.dynamics(self.state, action)
-        #next_state = a*self.dt
-        #for i in range(20):
+        #next_state = self.state + a*self.dt
+        #for i in range(5):
         #    b = self.dynamics(next_state, action)
         #    next_state = self.state + (a + b)*(0.5*self.dt)
         #
         #self.state = next_state
         #self.state_dots = b
         #self.last_action = action
+        #self.step_end()
 
     def step_start(self):
         """This method can be overwritten by inherited classes.

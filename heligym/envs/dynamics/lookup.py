@@ -88,7 +88,7 @@ class LookUpTable:
         else:
             self._rowCounter = 0
             self._colCounter = 1
-        self._data = np.zeros((self._nRows + 1, self._nCols + 1), dtype=np.float32)
+        self._data = np.zeros((self._nRows + 1, self._nCols + 1), dtype=np.float)
         self._lastRowIndex = self._lastColIndex = 2
     
     def __lshift__(self, n):

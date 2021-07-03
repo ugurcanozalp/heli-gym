@@ -16,7 +16,7 @@ def euler_to_rotmat(euler):
                       [ 0   ,   cos[0]  ,   sin[0]  ],
                       [ 0   ,   -sin[0] ,   cos[0]  ] ]
 
-    rot_mat = np.array(phi_rot)@np.array(theta_rot)@np.array(psi_rot)
+    rot_mat = np.array(phi_rot, dtype=np.float)@np.array(theta_rot, dtype=np.float)@np.array(psi_rot, dtype=np.float)
     return rot_mat
 
 def pqr_to_eulerdot_mat(euler):
@@ -26,4 +26,4 @@ def pqr_to_eulerdot_mat(euler):
                       [ 0   , cos[0]                ,   -sin[0]               ], 
                       [ 0   , sin[0]/cos[1]         ,   cos[0]/cos[1]         ] ]
 
-    return np.array(mat)
+    return np.array(mat, dtype=np.float)

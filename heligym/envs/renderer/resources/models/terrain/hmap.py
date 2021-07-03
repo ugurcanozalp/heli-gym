@@ -6,7 +6,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 img = cv2.imread(cwd + '/terrain_hmap.png',0)/255
 # smooth height map since is might be too sharp.
-kernel = np.ones((5,5),np.float32)/25
+kernel = np.ones((5,5),np.float)/25
 img_smooth = cv2.filter2D(img,-1,kernel)
 
 rows,cols = img_smooth.shape

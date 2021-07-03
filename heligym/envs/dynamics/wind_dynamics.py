@@ -24,7 +24,7 @@ class WindDynamics(DynamicSystem):
         self.turbulence_level = params['TURB_LVL']
         self.wind_dir = params['WIND_DIR']*D2R
         self.wind_speed = params['WIND_SPD']
-        self.wind_mean_ned = self.wind_speed*np.array([np.cos(self.wind_dir), np.sin(self.wind_dir), 0], dtype=np.float32)
+        self.wind_mean_ned = self.wind_speed*np.array([np.cos(self.wind_dir), np.sin(self.wind_dir), 0], dtype=np.float)
         self.__register_states()
         self.TEP = LookUpTable(7,12) # Turbulence Exceedence Probability Lookup Table
         self.TEP       << 500.0 << 1750.0 << 3750.0 << 7500.0 << 15000.0 << 25000.0 << 35000.0 << 45000.0 << 55000.0 << 65000.0 << 75000.0 << 80000.0 \
@@ -98,11 +98,11 @@ class WindDynamics(DynamicSystem):
         t_v = Lv/(vel_inf + EPS)
         t_w = Lw/(vel_inf + EPS)
         
-        usdot = np.array([1/t_u*(self.eta[0] - us[0])])
+        usdot = np.array([1/t_u*(self.eta[0] - us[0])], dtype=np.float)
         vsdot = np.array([1/(4*t_v**2)*(self.eta[1] - vs[1]) - 1/t_v*vs[0], 
-                          vs[0]]) 
+                          vs[0]], dtype=np.float) 
         wsdot = np.array([1/(4*t_w**2)*(self.eta[2] - ws[1]) - 1/t_w*ws[0], 
-                          ws[0]]) 
+                          ws[0]], dtype=np.float) 
 
         state_dots["us"] = usdot
         state_dots["vs"] = vsdot
@@ -118,7 +118,7 @@ class WindDynamics(DynamicSystem):
             cturb, sturb = np.cos(turb_azimuth), np.sin(turb_azimuth)
             turb_vel = np.array([cturb*u_turb - sturb*v_turb, 
                 sturb*u_turb + cturb*v_turb, 
-                w_turb])
+                w_turb], dtype=np.float)
             wind_vel = self.wind_mean_ned + turb_vel
             self.observation = wind_vel
 
@@ -128,8 +128,8 @@ if __name__=='__main__':
     import matplotlib.pyplot as plt 
     params = {'TURB_LVL': 3, 'WIND_DIR': 45, 'WIND_SPD': 30}
     turb_dyn = WindDynamics(turbulence_level=1, dt=0.01)
-    h_gr = np.array([500], dtype=np.float32)
-    vel = np.array([100,0,0], dtype=np.float32)
+    h_gr = np.array([500], dtype=np.float)
+    vel = np.array([100,0,0], dtype=np.float)
     all_obs = []
     time = 0.01*np.arange(30000)
     for t in time:

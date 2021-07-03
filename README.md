@@ -27,9 +27,9 @@ In addition, inflow dynamics are added and model is adjusted so that it covers m
 | Num | Obs                | Unit  | Min   | Max    |
 |-----|--------------------|-------|-------|--------|
 | 0   | power              | hp    | 0     | ∞      |
-| 1   | air speed          | ft/s  | 0     | ∞      |  
-| 2   | angle of attack    | rad   | -π    | π      |
-| 3   | sideslip angle     | rad   | -π    | π      |
+| 1   | lon. air speed     | ft/s  | -∞    | ∞      |  
+| 2   | lat. air speed     | ft/s  | -∞    | ∞      |
+| 3   | down air speed     | ft/s  | -∞    | ∞      |
 | 4   | north velocity     | ft/s  | -∞    | ∞      |  
 | 5   | east velocity      | ft/s  | -∞    | ∞      |
 | 6   | descend rate       | ft/s  | -∞    | ∞      |  
@@ -47,12 +47,11 @@ In addition, inflow dynamics are added and model is adjusted so that it covers m
 ## __Tasks__
 For now only one task is available. However, rewarding is not tested well yet.
 
-| Environment        | Details              |
-|--------------------|----------------------|
-| HeliHover-v0       | Hovering Task        |
-| HeliHover-v0       | Hovering Task        |
-| HeliHover-v0       | Hovering Task        |
-| HeliHover-v0       | Hovering Task        |
+| Environment           | Details              |
+|--------------------   |----------------------|
+| HeliHover-v0          | Hover                |
+| HeliForwardFlight-v0  | Forward Flight       |
+| HeliObliqueFlight-v0  | Oblique Flight       |
 
 -------------------------------------
 ## __Tested OS__
@@ -109,7 +108,5 @@ To do list for Reinforcement Learning tasks.
 - [x] Add **forward flight** task
 - [x] Add **oblique flight** task
 - [ ] Add **turning flight** task
-- [ ] Add **take-off** task
-- [ ] Add **landing** task
+- [ ] Add **ground** task
 - [ ] Add **slalom maneuver** task
-- [ ] Add **piroutte maneuver** task
