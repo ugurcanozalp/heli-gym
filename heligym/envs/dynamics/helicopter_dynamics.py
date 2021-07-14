@@ -158,8 +158,8 @@ class HelicopterDynamics(DynamicSystem):
         x_ = self.ENV["NS_MAX"] / self.terrain_hmap.shape[0] # terrain x size per pixel
         y_ = self.ENV["EW_MAX"] / self.terrain_hmap.shape[1] # terrain y size per pixel
 
-        x_loc = np.nan_to_num(self.state['xyz'][0]) / x_ + self.terrain_hmap.shape[0] // 2
-        y_loc = np.nan_to_num(self.state['xyz'][1]) / y_ + self.terrain_hmap.shape[1] // 2
+        x_loc = (self.state['xyz'][0]) / x_ + self.terrain_hmap.shape[0] // 2
+        y_loc = (self.state['xyz'][1]) / y_ + self.terrain_hmap.shape[1] // 2
 
         # make sure that get height from hmap
         if x_loc < 0:
@@ -375,7 +375,7 @@ class HelicopterDynamics(DynamicSystem):
     def dynamics(self, state, action, set_observation=False):
         t0 = time.perf_counter()
         #
-        state_dots = self.state_dots
+        state_dots = copy.deepcopy(self.state_dots)
         #
         vi_mr = state['vi_mr']
         vi_tr = state['vi_tr']

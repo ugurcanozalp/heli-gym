@@ -5,7 +5,7 @@ import yaml
 import sys, math
 import numpy as np
 import os
-import time
+import copy
 
 import gym
 from gym import spaces
@@ -15,7 +15,7 @@ from .dynamics import HelicopterDynamics
 from .dynamics import WindDynamics
 from .renderer.api import Renderer
 
-FPS         = 100.0
+FPS         = 50.0
 DT          = 1/FPS
 FTS2KNOT    = 0.5924838 # ft/s to knots conversion
 EPS         = 1e-10 # small value for divison by zero
@@ -92,9 +92,15 @@ class Heli(gym.Env, EzPickle):
     def set_target(self, target=None):
         self.task_target = np.zeros(self.heli_dyn.n_obs) if target is None else target
 
+    def get_target(self):
+        return np.copy(self.task_target)
+
     def set_trim_cond(self, trim_cond={}):
         self.trim_cond = self.default_trim_cond
         self.trim_cond.update(trim_cond)
+
+    def get_trim_cond(self):
+        return copy.deepcopy(self.trim_cond)
 
     def set_reward_weights(self, base_reward_weight=None, terminal_reward_weight=None):
         zero_ = np.zeros((self.heli_dyn.n_obs,self.heli_dyn.n_obs))
@@ -195,7 +201,7 @@ class Heli(gym.Env, EzPickle):
         info = self._get_info()
         done = info['failed'] or info['successed'] or info['time_up'] or reward == np.nan
         self.successed_time += DT if successed_step else 0
-        return observation, reward, done, info
+        return np.copy(observation, reward, done, info)
 
     def reset(self):
         self.time_counter = 0
@@ -206,7 +212,7 @@ class Heli(gym.Env, EzPickle):
             self.__create_guiINFO_text()
             self.__add_to_guiText()
             self._bGuiText = True
-        return self.heli_dyn.observation      
+        return np.copy(self.heli_dyn.observation)
 
     def _get_info(self):
         return {
