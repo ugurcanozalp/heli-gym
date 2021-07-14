@@ -201,7 +201,7 @@ class Heli(gym.Env, EzPickle):
         info = self._get_info()
         done = info['failed'] or info['successed'] or info['time_up'] or reward == np.nan
         self.successed_time += DT if successed_step else 0
-        return np.copy(observation, reward, done, info)
+        return np.copy(observation), reward, done, info
 
     def reset(self):
         self.time_counter = 0
