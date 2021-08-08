@@ -219,12 +219,12 @@ class HelicopterDynamics(DynamicSystem):
         vi_mr_dot[0] = 0.75*math.pi/self.MR['R']*(thrust_mr/(2*math.pi*rho*self.MR['R']*self.MR['R']) - vi_mr[0]*math.sqrt(v_adv_2+(wr-vi_mr[0])**2))
 
         # MR induced flow power consumption
-        induced_power=thrust_mr*(vi_mr[0]-wr)
+        induced_power = thrust_mr*(vi_mr[0]-wr)
         # MR profile drag power consumption
-        profile_power=0.5*rho*(self.MR['FR']/4)*self.MR['V_TIP']*(self.MR['V_TIP']*self.MR['V_TIP']+ \
+        profile_power = 0.5*rho*(self.MR['FR']/4)*self.MR['V_TIP']*(self.MR['V_TIP']*self.MR['V_TIP']+ \
                      3.0*v_adv_2)
-        power_mr=induced_power+profile_power
-        torque_mr=power_mr/self.MR['OMEGA']
+        power_mr = induced_power+profile_power
+        torque_mr = power_mr/self.MR['OMEGA']
 
         # thrust coeff.
         CT = thrust_mr/(rho*math.pi*self.MR['R']*self.MR['R']*self.MR['V_TIP']*self.MR['V_TIP'])
@@ -373,7 +373,6 @@ class HelicopterDynamics(DynamicSystem):
         return force_wn, moment_wn, power_wn
 
     def dynamics(self, state, action, set_observation=False):
-        #t0 = time.perf_counter()
         #
         state_dots = copy.deepcopy(self.state_dots)
         #
@@ -386,7 +385,6 @@ class HelicopterDynamics(DynamicSystem):
         pqr = state['pqr']
         euler = state['euler']
         xyz = state['xyz']
-        #t1 = time.perf_counter()
         ### Control input calculations 
         coll = D2R*( self.HELI['COL_OS'] + 
             0.5*action[0]*(self.HELI['COL_H'] - self.HELI['COL_L']) + 
@@ -397,7 +395,6 @@ class HelicopterDynamics(DynamicSystem):
             0.5*(self.HELI['LAT_H'] + self.HELI['LAT_L']) )
         pedal = D2R*( self.HELI['PED_OS'] + 0.5*action[3]*(self.HELI['PED_H'] - self.HELI['PED_L']) + 
             0.5*(self.HELI['PED_H'] + self.HELI['PED_L']) )
-        #t2 = time.perf_counter()
         ###  Kinematic calculations
         earth2body = euler_to_rotmat(euler) # Earth to Body DCM matrix
         body2earth = earth2body.transpose() #  Body to Earth DCM matrix
@@ -405,7 +402,6 @@ class HelicopterDynamics(DynamicSystem):
         pqr_to_eulerdot = pqr_to_eulerdot_mat(euler) # par to eulerdot function.
         euler_dot = pqr_to_eulerdot@pqr # calculated eulerdot..
         ned_vel = body2earth@uvw # ned velocity 
-        #t3 = time.perf_counter()
         ###  Airspeed calculations
         uvw_air = uvw - earth2body@self.WIND_NED
       
@@ -414,31 +410,23 @@ class HelicopterDynamics(DynamicSystem):
 
         ### Atmosphere calculations
         temperature, rho = self._altitude_to_air_properties(-xyz[2])
-        #t4 = time.perf_counter()
         ### Main Rotor
         force_mr, moment_mr, power_mr, betas_dot, vi_mr_dot, psi_mr_dot = self._calc_mr_fm(rho, coll, lon, lat, betas, uvw_air, pqr, vi_mr, psi_mr)
-        #t5 = time.perf_counter()
         force_tr, moment_tr, power_tr, vi_tr_dot, psi_tr_dot = self._calc_tr_fm(rho, pedal, uvw_air, pqr, vi_tr, psi_tr)
-        #t6 = time.perf_counter()
         force_fus, moment_fus, power_fus = self._calc_fus_fm(rho, uvw_air, vi_mr)
-        #t7 = time.perf_counter()
         force_ht, moment_ht = self._calc_ht_fm(rho, uvw_air, pqr, vi_mr)
-        #t8 = time.perf_counter()
         force_vt, moment_vt = self._calc_vt_fm(rho, uvw_air, pqr, vi_tr)
-        #t9 = time.perf_counter()
         force_wn, moment_wn, power_wn = self._calc_wn_fm(rho, uvw_air, vi_mr)
-        #t10 = time.perf_counter()
         # Other power consumptions are counted for main rotor torque
+        
         power_extra_mr = power_climb + power_fus
         extra_mr_torque = power_extra_mr / self.MR['OMEGA']
         moment_mr[2] += extra_mr_torque
 
-        power_total = power_mr + power_tr + power_extra_mr + power_wn + 550*self.HELI['HP_LOSS'] 
-        #t11 = time.perf_counter()
+        power_total = power_mr + power_tr + power_extra_mr + power_wn + 550*self.HELI['HP_LOSS']
         force_gravity = earth2body@np.array([0,0,self.HELI['WT']])
         force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
         moment_total = moment_mr + moment_tr + moment_fus + moment_ht + moment_vt + moment_wn
-        #t12 = time.perf_counter()
         if self._does_hit_ground(-xyz[2]):
             w = 5.0
             zeta = 2.0
@@ -450,12 +438,9 @@ class HelicopterDynamics(DynamicSystem):
             force_total += force_ground
             
         body_acc = force_total/self.HELI['M']
-        #t13 = time.perf_counter()
         uvw_dot = body_acc - cross_product(pqr, uvw)
-        #t14 = time.perf_counter()
         pqr_dot = self.HELI['IINV']@(moment_total - cross_product(pqr, self.HELI['I']@pqr))
         xyz_dot = ned_vel
-        #t15 = time.perf_counter()
         ### State derivatives
         state_dots['vi_mr'] = vi_mr_dot
         state_dots['vi_tr'] = vi_tr_dot
@@ -466,7 +451,6 @@ class HelicopterDynamics(DynamicSystem):
         state_dots['pqr'] = pqr_dot
         state_dots['euler'] = euler_dot
         state_dots['xyz'] = xyz_dot
-        #t16 = time.perf_counter()
         if set_observation:
             ### Observation calculations
             power_total_hp = power_total/550 # [hp] Power consumption in Horse Power
