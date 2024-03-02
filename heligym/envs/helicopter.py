@@ -23,7 +23,7 @@ R2D         = 180/math.pi # Rad to deg
 D2R         = 1/R2D
 FT2MTR      = 0.3048 # ft to meter
 TAU         = 2*math.pi
-FLOAT_TYPE  = np.float64
+FLOAT_TYPE  = np.float32
 
 class Heli(gym.Env, EzPickle):
     metadata = {
@@ -37,7 +37,7 @@ class Heli(gym.Env, EzPickle):
         "yaw": 0.0,
         "yaw_rate": 0.0,
         "ned_vel": [0.0, 0.0, 0.0],
-        "gr_alt": 10.0,
+        "gr_alt": 1000.0,
         "xy": [0.0, 0.0],
         "psi_mr": 0.0,
         "psi_tr": 0.0
@@ -53,8 +53,8 @@ class Heli(gym.Env, EzPickle):
         self.heli_dyn = HelicopterDynamics(params, DT)
         self.wind_dyn = WindDynamics(params['ENV'], DT)
         self.heli_dyn.set_wind(self.wind_dyn.wind_mean_ned) # set mean wind as wind so that helicopter trims accordingly
-        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.heli_dyn.n_obs,), dtype=np.float)
-        self.action_space = spaces.Box(-1, +1, (self.heli_dyn.n_act,), dtype=np.float)
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.heli_dyn.n_obs,), dtype=np.float32)
+        self.action_space = spaces.Box(-1, +1, (self.heli_dyn.n_act,), dtype=np.float32)
         self.successed_time = 0 # time counter for successing task through time.
         self.set_max_time()
         self.set_target()
@@ -194,12 +194,10 @@ class Heli(gym.Env, EzPickle):
         # Turbulence calculations
         pre_observations = self.heli_dyn.observation
         wind_action = np.concatenate([pre_observations[4:7], pre_observations[16:]])
-        self.wind_dyn.step(wind_action)
-        wind_turb_vel = self.wind_dyn.observation
+        wind_turb_vel = self.wind_dyn.step(wind_action)
         # Helicopter dynamics calculations
         self.heli_dyn.set_wind(wind_turb_vel)  
-        self.heli_dyn.step(actions)
-        observation = self.heli_dyn.observation
+        observation = self.heli_dyn.step(actions)
         reward, successed_step = self._calculate_reward()
         info = self._get_info()
         done = info['failed'] or info['successed'] or info['time_up'] or reward == np.nan

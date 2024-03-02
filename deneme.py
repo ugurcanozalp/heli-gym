@@ -6,7 +6,7 @@ import time
 env = heligym.HeliHover()
 #env.set_max_time(1000)
 env.reset()
-action = env.heli_dyn.last_action + np.array([0.09, 0,0,0.04])
+action = env.heli_dyn.action # + np.array([0.09, 0,0,0.04])
 
 for i in range(1000000):
 
@@ -14,7 +14,7 @@ for i in range(1000000):
     #print(r)
     env.render()
 
-    if done:
+    if done and False:
         print(info)
         env.close()
         print('Done!')

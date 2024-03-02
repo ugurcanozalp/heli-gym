@@ -76,7 +76,7 @@ class StateNumpy():
     def __init__(self):
         self.info = {}
         self.size = 0
-        self.val = np.array([], dtype=np.float)
+        self.val = np.array([], dtype=np.float32)
 
     def __setitem__(self, name: str, value: np.ndarray):
         if name in self.info.keys():
@@ -132,11 +132,11 @@ class DynamicSystem(object):
         self.state = StateNumpy()
         self.state_dots = StateNumpy()
         self.dt = dt
-        self.last_action = None # should be filled after a step call
+        self.action = None # should be filled after a step call
         self.observation = None # should be filled after a step call, or trim
         self.previous_observation = None # should be filled after a step call
 
-    def dynamics(self, state, action, set_observations=False):
+    def dynamics(self, state, set_observations=False):
         raise NotImplementedError
 
     def _register_state(self, name:str, value: np.ndarray):
@@ -158,34 +158,24 @@ class DynamicSystem(object):
     def step(self, action):
         """This function lets the system to go one time step ahead using RK4.
         """
-        self.step_start()
+        self.action = action
+        self.step_before()
         self.previous_observation = self.observation
-        k1 = self.dynamics(self.state, action)
-        k2 = self.dynamics(self.state + k1 * (0.5*self.dt), action)
-        k3 = self.dynamics(self.state + k2 * (0.5*self.dt), action)
-        k4 = self.dynamics(self.state + k3 * self.dt, action, set_observation=True)
+        k1 = self.dynamics(self.state)
+        k2 = self.dynamics(self.state + k1 * (0.5*self.dt))
+        k3 = self.dynamics(self.state + k2 * (0.5*self.dt))
+        k4 = self.dynamics(self.state + k3 * self.dt, set_observation=True)
         self.state += (k1 + k2*2 + k3*2 + k4)*(0.16666666666666666 * self.dt)
         self.state_dots = k4
-        self.last_action = action
-        self.step_end()
-        ### Solve system by Implicit Trapezoidal Rule a singel step.
-        #a = self.dynamics(self.state, action)
-        #next_state = self.state + a*self.dt
-        #for i in range(5):
-        #    b = self.dynamics(next_state, action)
-        #    next_state = self.state + (a + b)*(0.5*self.dt)
-        #
-        #self.state = next_state
-        #self.state_dots = b
-        #self.last_action = action
-        #self.step_end()
+        self.step_after()
+        return self.observation
 
-    def step_start(self):
+    def step_before(self):
         """This method can be overwritten by inherited classes.
         """
         pass
 
-    def step_end(self):
+    def step_after(self):
         """This method can be overwritten by inherited classes.
         """
         pass

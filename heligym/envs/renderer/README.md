@@ -141,7 +141,7 @@ mkdir build && cd build
 ```
 command. To build for shared librares (for details look [Docs](https://www.glfw.org/docs/latest/compile.html#compile_deps_x11) ), call the 
 ```bash
-cmake -DBUILD_SHARED_LIBS=ON .
+cmake -DBUILD_SHARED_LIBS=ON ..
 ```
 command. To compile the glfw, call the 
 ```bash

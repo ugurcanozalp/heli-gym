@@ -1,3 +1,4 @@
+
 import numpy as np
 from .helicopter import Heli
 
@@ -14,7 +15,7 @@ class HeliHover(Heli):
             "yaw": 0.0,
             "yaw_rate": 0.0,
             "ned_vel": [0.0, 0.0, 0.0],
-            "gr_alt": 10.0,
+            "gr_alt": 1000.0,
             "xy": [0.0, 0.0],
             "psi_mr": 0.0,
             "psi_tr": 0.0
@@ -29,7 +30,7 @@ class HeliHover(Heli):
         pqr_norm = self.heli_dyn.state["pqr"] * self.normalizers["t"] 
         pqrdot_norm = self.heli_dyn.state_dots["pqr"] * self.normalizers["t"]**2
 
-        xyz_target_norm = np.array([self.task_target["north_loc"], self.task_target["east_loc"], -self.task_target["sea_alt"]], dtype=np.float) / self.normalizers["x"]
+        xyz_target_norm = np.array([self.task_target["north_loc"], self.task_target["east_loc"], -self.task_target["sea_alt"]], dtype=np.float32) / self.normalizers["x"]
 
         pqr_final_reward = - (pqr_norm * pqr_norm).sum()
         pqr_terminal_reward = - (np.sign(pqr_norm) * pqrdot_norm).sum()
@@ -64,7 +65,7 @@ class HeliForwardFlight(Heli):
             "yaw": 0.0,
             "yaw_rate": 0.0,
             "ned_vel": [0.0, 0.0, 0.0],
-            "gr_alt": 10.0,
+            "gr_alt": 1000.0,
             "xy": [0.0, 0.0],
             "psi_mr": 0.0,
             "psi_tr": 0.0
@@ -83,8 +84,8 @@ class HeliForwardFlight(Heli):
         pqr_norm = self.heli_dyn.state["pqr"] * self.normalizers["t"] 
         pqrdot_norm = self.heli_dyn.state_dots["pqr"] * self.normalizers["t"]**2
 
-        vel_target_norm = np.array(self.task_target["vel"], dtype=np.float) / self.normalizers["v"]
-        dwn_target_norm = np.array(-self.task_target["sea_alt"], dtype=np.float) / self.normalizers["x"]
+        vel_target_norm = np.array(self.task_target["vel"], dtype=np.float32) / self.normalizers["v"]
+        dwn_target_norm = np.array(-self.task_target["sea_alt"], dtype=np.float32) / self.normalizers["x"]
 
         pqr_final_reward = - (pqr_norm * pqr_norm).sum()
         pqr_terminal_reward = - (np.sign(pqr_norm) * pqrdot_norm).sum()

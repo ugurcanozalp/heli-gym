@@ -128,3 +128,5 @@ dmypy.json
 #others
 .idea
 imgui.ini
+
+heligym/envs/renderer/libs/libassimp*
