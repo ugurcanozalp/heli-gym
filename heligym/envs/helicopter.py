@@ -37,7 +37,7 @@ class Heli(gym.Env, EzPickle):
         "yaw": 0.0,
         "yaw_rate": 0.0,
         "ned_vel": [0.0, 0.0, 0.0],
-        "gr_alt": 1000.0,
+        "gr_alt": 100.0,
         "xy": [0.0, 0.0],
         "psi_mr": 0.0,
         "psi_tr": 0.0

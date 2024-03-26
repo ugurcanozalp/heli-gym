@@ -11,7 +11,7 @@ ENV:
     EW_MAX      : 6561.6798 # [ft] Span of terrain in east-west axis
     WIND_DIR    : 45.0 # [deg] Wind direction 
     WIND_SPD    : 20 # [ft/s] Wind speed
-    TURB_LVL    : 3 # Turbulence level 1-Lightest 7-strongest
+    TURB_LVL    : 1 # Turbulence level 1-Lightest 7-strongest
     HMAP_PATH   : "/models/terrain/terrain_hmap.png"
     NMAP_PATH   : "/models/terrain/terrain_normal.png"
 
@@ -91,3 +91,11 @@ HELI:
         ZUW    : 0. # [ft^2] circulatio lift
         ZMAX   : 0. # [ft^2] max. lift
         B      : 1 # [ft] wing span
+
+    LG:
+        K      : 30000 # [lb/ft]
+        C      : 2000 # [lb*s/ft]
+        BL_MN  : 42 # [inch] lateral position of Main LG
+        FS_MN  : 187 # [inch] horizontal position of Main LG
+        FS_N   : 40 # [inch] horizontal position of Nose LG
+        WL     : -22 # [inch] vertical position of LG

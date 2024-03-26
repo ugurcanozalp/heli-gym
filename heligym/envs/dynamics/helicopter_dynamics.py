@@ -46,7 +46,7 @@ class HelicopterDynamics(DynamicSystem):
             "yaw": 0.0,
             "yaw_rate": 0.0,
             "ned_vel": [0.0, 0.0, 0.0],
-            "gr_alt": 1000.0,
+            "gr_alt": 100.0,
             "xy": [0.0, 0.0],
             "psi_mr": 0.0,
             "psi_tr": 0.0
@@ -99,6 +99,10 @@ class HelicopterDynamics(DynamicSystem):
     @property
     def WN(self):
         return self.HELI['WN']    
+
+    @property
+    def LG(self):
+        return self.HELI['LG']  
     
     def __precalculations(self):
         # Component positions wrt CG locations
@@ -115,6 +119,11 @@ class HelicopterDynamics(DynamicSystem):
         self.VT['D']  = (self.VT['FS']-self.HELI['FS_CG'])/12
         self.TR['H']  = (self.TR['WL']-self.HELI['WL_CG'])/12
         self.TR['D']  = (self.TR['FS']-self.HELI['FS_CG'])/12
+        # 
+        self.LG['N_LOC'] = - np.array([self.LG['FS_N']-self.HELI['FS_CG'], 0, self.LG['WL']-self.HELI['WL_CG']], dtype=np.float32) / 12
+        self.LG['R_LOC'] = - np.array([self.LG['FS_MN']-self.HELI['FS_CG'], - self.LG['BL_MN'], self.LG['WL']-self.HELI['WL_CG']], dtype=np.float32) / 12
+        self.LG['L_LOC'] = - np.array([self.LG['FS_MN']-self.HELI['FS_CG'], self.LG['BL_MN'], self.LG['WL']-self.HELI['WL_CG']], dtype=np.float32) / 12
+        self.LG['LOC'] = np.stack([self.LG['N_LOC'], self.LG['R_LOC'], self.LG['L_LOC']], axis=0)
         #
         self.HELI['M']=self.HELI['WT']/self.ENV['GRAV'] # [slug] vehicle mass
         # Main Rotor precalculations
@@ -373,6 +382,21 @@ class HelicopterDynamics(DynamicSystem):
         moment_wn = np.array([0, 0, 0], dtype=np.float32)        
         return force_wn, moment_wn, power_wn
 
+    def _calc_lg_fm(self, xyz, ned_vel, body2earth, pqr):
+        force_lg = np.zeros_like(ned_vel)
+        moment_lg = np.zeros_like(ned_vel)
+        for i in range(len(self.LG['LOC'])):
+            pos_lg_body = self.LG['LOC'][i]
+            earth2body = body2earth.transpose()
+            pos_lg_ned = xyz + body2earth @ pos_lg_body
+            vel_lg_ned = ned_vel + body2earth @ cross_product(pqr, pos_lg_body)
+            if self._does_hit_ground(-pos_lg_ned[2]):           
+                cxdot = self.LG["C"] * vel_lg_ned[2]
+                kx = self.LG["K"] * (pos_lg_ned[2] + self.__get_ground_height_from_hmap())
+                force_lg += earth2body @ np.array([0.0, 0.0, -(cxdot + kx) + EPS])
+                moment_lg += cross_product(pos_lg_body, force_lg)
+        return force_lg, moment_lg
+
     def dynamics(self, state, set_observation=False):
         #
         state_dots = copy.deepcopy(self.state_dots)
@@ -418,6 +442,7 @@ class HelicopterDynamics(DynamicSystem):
         force_ht, moment_ht = self._calc_ht_fm(rho, uvw_air, pqr, vi_mr)
         force_vt, moment_vt = self._calc_vt_fm(rho, uvw_air, pqr, vi_tr)
         force_wn, moment_wn, power_wn = self._calc_wn_fm(rho, uvw_air, vi_mr)
+        force_lg, moment_lg = self._calc_lg_fm(xyz, ned_vel, body2earth, pqr)
         # Other power consumptions are counted for main rotor torque
         
         power_extra_mr = power_climb + power_fus
@@ -426,17 +451,8 @@ class HelicopterDynamics(DynamicSystem):
 
         power_total = power_mr + power_tr + power_extra_mr + power_wn + 550*self.HELI['HP_LOSS']
         force_gravity = earth2body@np.array([0,0,self.HELI['WT']])
-        force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity
-        moment_total = moment_mr + moment_tr + moment_fus + moment_ht + moment_vt + moment_wn
-        if self._does_hit_ground(-xyz[2]):
-            w = 5.0
-            zeta = 2.0
-            K = w*w * self.HELI["M"]
-            C =  2 * zeta * self.HELI["M"] * w
-            cxdot = C * ned_vel[2]
-            kx = K * (xyz[2] + self.ground_touching_altitude())
-            force_ground = earth2body@ np.array([0.0, 0.0, -(cxdot + kx) + EPS])
-            force_total += force_ground
+        force_total = force_mr + force_tr + force_fus + force_ht + force_vt + force_wn + force_gravity + force_lg
+        moment_total = moment_mr + moment_tr + moment_fus + moment_ht + moment_vt + moment_wn + moment_lg
             
         body_acc = force_total/self.HELI['M']
         uvw_dot = body_acc - cross_product(pqr, uvw)
