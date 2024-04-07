@@ -10,7 +10,7 @@ action = env.heli_dyn.action # + np.array([0.09, 0,0,0.04])
 
 for i in range(1000000):
 
-    _, r, done, info = env.step(action)
+    _, r, done, truncated, info = env.step(action)
     #print(r)
     env.render()
 

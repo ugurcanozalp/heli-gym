@@ -7,9 +7,9 @@ import numpy as np
 import os
 import copy
 
-import gym
-from gym import spaces
-from gym.utils import seeding, EzPickle
+import gymnasium as gym
+from gymnasium import spaces
+from gymnasium.utils import seeding, EzPickle
 
 from .dynamics import HelicopterDynamics
 from .dynamics import WindDynamics
@@ -200,9 +200,10 @@ class Heli(gym.Env, EzPickle):
         observation = self.heli_dyn.step(actions)
         reward, successed_step = self._calculate_reward()
         info = self._get_info()
-        done = info['failed'] or info['successed'] or info['time_up'] or reward == np.nan
+        done = info['failed'] or info['successed'] or reward == np.nan
+        truncated = info['time_up']
         self.successed_time += DT if successed_step else 0
-        return np.copy(observation), reward, done, info
+        return np.copy(observation), reward, done, truncated, info
 
     def reset(self):
         self.time_counter = 0
@@ -213,7 +214,7 @@ class Heli(gym.Env, EzPickle):
             self.__create_guiINFO_text()
             self.__add_to_guiText()
             self._bGuiText = True
-        return np.copy(self.heli_dyn.observation)
+        return np.copy(self.heli_dyn.observation), self._get_info()
 
     def _get_info(self):
         return {
