@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import heligym
 import numpy as np
 import time
